@@ -3,9 +3,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsuarioAuthService } from './usuario_auth.service';
 import { UsuarioAuthController } from './usuario_auth.controller';
 import { UsuarioAuth } from './entities/usuario_auth.entity'; 
+import { JwtModule } from '@nestjs/jwt'; 
+import { PassportModule } from '@nestjs/passport'; 
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UsuarioAuth])], 
+  imports: [
+    TypeOrmModule.forFeature([UsuarioAuth]),
+    PassportModule,
+    // Configuramos el generador de tokens
+    JwtModule.register({
+      secret: 'PALABRA_SECRETA_RAFAELA_2026', // Después esto irá al .env por seguridad
+      signOptions: { expiresIn: '1h' }, // El token dura 1 hora
+    }),
+  ],
   controllers: [UsuarioAuthController],
   providers: [UsuarioAuthService],
 })
