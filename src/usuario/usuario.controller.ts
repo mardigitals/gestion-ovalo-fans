@@ -1,8 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UsuarioService } from './usuario.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
-import { Usuario } from './entities/usuario.entity';
+
 
 @Controller('usuario')
 export class UsuarioController {
@@ -14,8 +14,8 @@ export class UsuarioController {
   }
 
   @Get()
-  findAll() {
-    return this.usuarioService.findAll();
+  findAll(@Query() query: any) { // El decorador @Query captura los parámetros de la URL
+    return this.usuarioService.findAll(query);
   }
 
   @Get(':id')
@@ -31,5 +31,10 @@ export class UsuarioController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.usuarioService.remove(+id);
+  }
+
+  @Patch(':id/restore')
+  restore(@Param('id') id: string) {
+    return this.usuarioService.restore(+id);
   }
 }
