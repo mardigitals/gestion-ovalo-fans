@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
 import { UsuarioAuth } from '../../usuario_auth/entities/usuario_auth.entity';
+import { DeleteDateColumn } from 'typeorm';
 
 @Entity('usuario')
 export class Usuario {
@@ -55,7 +56,7 @@ export class Usuario {
   @Column({ length: 50, default: 'Argentina' })
   pais: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @DeleteDateColumn({ type: 'datetime', nullable: true })
   eliminado_en: Date;
 
   // La relación 1:1 con la tabla de seguridad
