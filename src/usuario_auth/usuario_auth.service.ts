@@ -66,7 +66,6 @@ export class UsuarioAuthService {
       access_token: await this.jwtService.signAsync(payload),
     };
   }
-  // Otros métodos (findAll, findOne, update, remove) pueden ser implementados aquí
 }
 
   
