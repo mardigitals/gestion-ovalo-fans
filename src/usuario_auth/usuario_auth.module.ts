@@ -5,6 +5,7 @@ import { UsuarioAuthController } from './usuario_auth.controller';
 import { UsuarioAuth } from './entities/usuario_auth.entity'; 
 import { JwtModule } from '@nestjs/jwt'; 
 import { PassportModule } from '@nestjs/passport'; 
+import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
@@ -17,6 +18,6 @@ import { PassportModule } from '@nestjs/passport';
     }),
   ],
   controllers: [UsuarioAuthController],
-  providers: [UsuarioAuthService],
+  providers: [UsuarioAuthService, JwtStrategy],
 })
 export class UsuarioAuthModule {}
