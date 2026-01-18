@@ -31,7 +31,7 @@ export class Usuario {
   @Column({ length: 25 })
   telefono: string;
 
-  // Domicilio completo según tus capturas
+  // Domicilio completo
   @Column({ length: 150 })
   calle: string;
 
