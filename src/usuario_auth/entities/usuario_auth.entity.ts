@@ -21,13 +21,13 @@ export class UsuarioAuth {
   estado_cuenta: string;
 
   @Column({ type: 'datetime', nullable: true })
-  ultimo_login: Date;
+  ultimo_login?: Date;
 
-  @Column({ length: 255, nullable: true })
-  token_recuperacion: string;
+  @Column({ type: 'varchar', length: 255, nullable: true }) // Agregamos type: 'varchar'
+  token_recuperacion?: string | null;
 
-  @Column({ type: 'datetime', nullable: true })
-  token_expiracion: Date;
+  @Column({ type: 'datetime', nullable: true }) // Este ya tiene type, está bien
+  token_expiracion?: Date | null;
 
   @Column({ type: 'tinyint', default: 0 })
   dos_factores_activado: number;
