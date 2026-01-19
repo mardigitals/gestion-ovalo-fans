@@ -42,35 +42,40 @@ export class UsuarioAuthService {
     return await this.usuarioAuthRepository.save(nuevoUsuario);
   }
 
-  async login(loginDto: LoginDto) {
-    const { email, contrasena } = loginDto;
+async login(loginDto: LoginDto) {
+  const { email, contrasena } = loginDto;
 
-    // 1. Buscamos al usuario (forzamos el select de la contraseña porque tiene select: false)
-    const usuario = await this.usuarioAuthRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'contrasena_hash'] 
-    });
+  // 1. Buscamos al usuario
+  const usuario = await this.usuarioAuthRepository.findOne({
+    where: { email },
+    select: ['id', 'email', 'contrasena_hash'] // Necesitamos el hash para comparar
+  });
 
-    // 2. Si no existe, tiramos error de una
-    if (!usuario) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    // 3. Comparamos la clave que viene de Postman con el Hash de la DB
-    const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
-
-    if (!esValida) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
-
-    // 4. Si todo está OK, preparamos el Payload (los datos del "pase VIP")
-    const payload = { sub: usuario.id, email: usuario.email };
-
-    // 5. Devolvemos el token firmado
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-    };
+  // 2. Validación de existencia
+  if (!usuario) {
+    throw new UnauthorizedException('Credenciales inválidas');
   }
+
+  // 3. Comparamos la clave
+  const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
+
+  if (!esValida) {
+    throw new UnauthorizedException('Credenciales inválidas');
+  }
+
+  // --- ACÁ ESTÁ EL CAMBIO CLAVE ---
+  // 4. Actualizamos el último login en la base de datos
+  usuario.ultimo_login = new Date(); 
+  await this.usuarioAuthRepository.save(usuario); 
+
+  // 5. Preparamos el Payload para el JWT
+  const payload = { sub: usuario.id, email: usuario.email };
+
+  // 6. Devolvemos el token (El usuario se lo lleva, vos guardaste la fecha en SQL)
+  return {
+    access_token: await this.jwtService.signAsync(payload),
+  };
+}
 
   async forgotPassword(email: string) {
     // 1. Verificar si el usuario existe
