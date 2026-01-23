@@ -5,6 +5,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsuarioAuthModule } from './usuario_auth/usuario_auth.module';
 import { UsuarioModule } from './usuario/usuario.module';
+import { PerfilFanModule } from './perfil-fan/perfil-fan.module';
+import { PerfilStaffModule } from './perfil-staff/perfil-staff.module';
 
 @Module({
   imports: [
@@ -29,6 +31,10 @@ import { UsuarioModule } from './usuario/usuario.module';
     UsuarioAuthModule,
     
     UsuarioModule,
+    
+    PerfilFanModule,
+    
+    PerfilStaffModule,
   ],
   controllers: [AppController],
   providers: [AppService],
