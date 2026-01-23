@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config'; // Importamos ConfigService
+import { ConfigModule, ConfigService } from '@nestjs/config'; 
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -7,6 +7,7 @@ import { UsuarioAuthModule } from './usuario_auth/usuario_auth.module';
 import { UsuarioModule } from './usuario/usuario.module';
 import { PerfilFanModule } from './perfil-fan/perfil-fan.module';
 import { PerfilStaffModule } from './perfil-staff/perfil-staff.module';
+import { RolStaffModule } from './rol-staff/rol-staff.module';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { PerfilStaffModule } from './perfil-staff/perfil-staff.module';
         port: configService.get<number>('DB_PORT'),
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'), // Aquí ya no fallará
+        database: configService.get<string>('DB_DATABASE'), 
         autoLoadEntities: true,
         synchronize: false,
       }),
@@ -35,6 +36,8 @@ import { PerfilStaffModule } from './perfil-staff/perfil-staff.module';
     PerfilFanModule,
     
     PerfilStaffModule,
+    
+    RolStaffModule,
   ],
   controllers: [AppController],
   providers: [AppService],

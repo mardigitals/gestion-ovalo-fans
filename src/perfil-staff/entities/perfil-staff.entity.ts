@@ -1,5 +1,6 @@
 import { Usuario } from 'src/usuario/entities/usuario.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn, ManyToOne } from 'typeorm';
+import { RolStaff } from '../../rol-staff/entities/rol-staff.entity';
 
 @Entity('staff')
 export class PerfilStaff {
@@ -28,4 +29,10 @@ export class PerfilStaff {
   @OneToOne(() => Usuario)
   @JoinColumn({ name: 'usuario_id' })
   usuario: Usuario;
+
+  // Relación Many-to-One con RolStaff
+  @ManyToOne(() => RolStaff, (rolStaff) => rolStaff.perfiles)
+  @JoinColumn({ name: 'rol_staff_id' })
+  rolStaff: RolStaff;
+
 }
