@@ -73,6 +73,34 @@ export class PerfilStaffService {
     return staff;
   }
   
+  async findOneFiltrado(id: number) {
+    // 1. Buscamos el registro
+    const staff = await this.perfilStaffRepository.findOne({
+      where: { id },
+      relations: ['usuario', 'rolStaff'],
+      select: {
+      id: true,
+      area: true,
+      cargo: true,
+      usuario: {
+        id: true,
+        nombre: true,   // Solo enviamos lo necesario
+        apellido: true,
+        // DNI, teléfono y dirección NO se incluyen aquí
+      },
+      rolStaff: {
+        nombre_rol: true
+      }
+    }
+    });
+    // 2. Si no existe, tiramos la excepción para que el 'remove' la capture
+    if (!staff) {
+      throw new NotFoundException(`No se encontró el perfil de staff con ID ${id}`);
+    }
+    
+    return staff;
+  }
+
   async remove(id: number) {
     // Ahora 'staff' será un objeto PerfilStaff, no un string
     const staff = await this.findOne(id); 
