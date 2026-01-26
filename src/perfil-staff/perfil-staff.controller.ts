@@ -44,6 +44,12 @@ export class PerfilStaffController {
     return this.perfilStaffService.remove(+id);
   }
 
+  @Patch('admin/:id/restore')
+  @Roles('SuperAdmin')
+  restore(@Param('id') id: string) {
+    return this.perfilStaffService.restore(+id);
+  }
+
   @Get(':id')
   @Roles('SuperAdmin', 'Administrativo', 'Prensa') // Todos los niveles de staff pueden ver por perfiles con datos principales
   findOneFiltrado(@Param('id') id: string) {
