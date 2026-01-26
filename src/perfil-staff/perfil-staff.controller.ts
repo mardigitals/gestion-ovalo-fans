@@ -14,35 +14,37 @@ export class PerfilStaffController {
   constructor(private readonly perfilStaffService: PerfilStaffService) {}
   
   @Post()
-  @Roles('admin') // Solo el SuperAdmin puede dar de alta staff
+  @Roles('SuperAdmin') // Solo el SuperAdmin puede dar de alta staff
   create(@Body() createPerfilStaffDto: CreatePerfilStaffDto) {
     return this.perfilStaffService.create(createPerfilStaffDto);
   }
 
   @Get()
-  @Roles('admin', 'administrativo') // Administrativos también pueden ver la lista
+  @Roles('SuperAdmin', 'Administrativo') // Administrativos también pueden ver la lista
   findAll() {
     return this.perfilStaffService.findAll();
   }
 
   @Get(':id')
-  @Roles('admin', 'administrativo', 'prensa') // Todos los niveles de staff ven perfiles individuales
+  @Roles('SuperAdmin', 'Administrativo', 'Prensa') // Todos los niveles de staff ven perfiles individuales
   findOne(@Param('id') id: string) {
     return this.perfilStaffService.findOne(+id);
   }
 
   
   @Patch(':id')
-  @Roles('admin') 
+  @Roles('SuperAdmin') 
   update(@Param('id') id: string, @Body() updatePerfilStaffDto: UpdatePerfilStaffDto) {
     return this.perfilStaffService.update(+id, updatePerfilStaffDto);
   }
 
   @Delete(':id')
-  @Roles('admin') 
+  @Roles('SuperAdmin') 
   remove(@Param('id') id: string) {
     return this.perfilStaffService.remove(+id);
   }
+
+  // + funciones de prensa para calendario y noticias 
 }
 
 

@@ -2,7 +2,7 @@ import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn, ManyToOne } from 'typeorm';
 import { RolStaff } from '../../rol-staff/entities/rol-staff.entity';
 
-@Entity('staff')
+@Entity('perfil_staff')
 export class PerfilStaff {
   @PrimaryGeneratedColumn()
   id: number;

@@ -17,6 +17,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   // 3. Si el token es válido, este método se ejecuta automáticamente
   async validate(payload: any) {
     // Lo que devolvemos acá se guarda en req.user
-    return { userId: payload.sub, email: payload.email };
+    return { userId: payload.sub, email: payload.email, rol: payload.rol };
   }
 }

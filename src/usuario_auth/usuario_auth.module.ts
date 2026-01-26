@@ -6,10 +6,11 @@ import { UsuarioAuth } from './entities/usuario_auth.entity';
 import { JwtModule } from '@nestjs/jwt'; 
 import { PassportModule } from '@nestjs/passport'; 
 import { JwtStrategy } from './strategies/jwt.strategy';
+import { Usuario } from 'src/usuario/entities/usuario.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UsuarioAuth]),
+    TypeOrmModule.forFeature([UsuarioAuth, Usuario]),
     PassportModule,
     // Configuramos el generador de tokens
     JwtModule.register({

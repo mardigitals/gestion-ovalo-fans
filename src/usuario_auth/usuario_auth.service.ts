@@ -9,7 +9,7 @@ import { LoginDto } from './dto/login.dto';
 import * as crypto from 'crypto';
 import { MoreThan } from 'typeorm';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-
+import { Usuario } from 'src/usuario/entities/usuario.entity';
 
 
 @Injectable()
@@ -17,6 +17,10 @@ export class UsuarioAuthService {
   constructor(
     @InjectRepository(UsuarioAuth)
     private readonly usuarioAuthRepository: Repository<UsuarioAuth>,
+
+    @InjectRepository(Usuario)
+    private readonly usuarioRepository: Repository<Usuario>,
+
     private jwtService: JwtService, // <--- Inyectamos  generador de tokens
   ) {}
 
@@ -56,6 +60,15 @@ async login(loginDto: LoginDto) {
     throw new UnauthorizedException('Credenciales inválidas');
   }
 
+ const usuarioConRol = await this.usuarioRepository.findOne({
+  where: { usuario_auth_id: usuario.id },
+  relations: ['perfilStaff', 'perfilStaff.rolStaff'],
+});
+
+// 3. Extraemos el nombre del rol (SuperAdmin, Prensa, etc.)
+// Si no tiene perfil de staff, le asignamos 'fan' por defecto
+const nombreRol = usuarioConRol?.perfilStaff?.rolStaff?.nombre_rol || 'fan';
+
   // 3. Comparamos la clave
   const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
 
@@ -63,13 +76,16 @@ async login(loginDto: LoginDto) {
     throw new UnauthorizedException('Credenciales inválidas');
   }
 
-  // --- ACÁ ESTÁ EL CAMBIO CLAVE ---
+ 
   // 4. Actualizamos el último login en la base de datos
-  usuario.ultimo_login = new Date(); 
-  await this.usuarioAuthRepository.save(usuario); 
+  // usuario.ultimo_login = new Date(); 
+  // await this.usuarioAuthRepository.save(usuario); 
 
-  // 5. Preparamos el Payload para el JWT
-  const payload = { sub: usuario.id, email: usuario.email };
+  const payload = { 
+    sub: usuario.id, 
+    email: usuario.email, 
+    rol: nombreRol 
+};
 
   // 6. Devolvemos el token (El usuario se lo lleva, vos guardaste la fecha en SQL)
   return {
