@@ -46,109 +46,153 @@ export class UsuarioAuthService {
     return await this.usuarioAuthRepository.save(nuevoUsuario);
   }
 
-async login(loginDto: LoginDto) {
-  const { email, contrasena } = loginDto;
+  async login(loginDto: LoginDto) {
+    const { email, contrasena } = loginDto;
 
-  // 1. Buscamos al usuario
-  const usuario = await this.usuarioAuthRepository.findOne({
-    where: { email },
-    select: ['id', 'email', 'contrasena_hash'] // Necesitamos el hash para comparar
+    // 1. Buscamos al usuario
+    const usuario = await this.usuarioAuthRepository.findOne({
+      where: { email },
+      select: ['id', 'email', 'contrasena_hash'] // Necesitamos el hash para comparar
+    });
+
+    // 2. Validación de existencia
+    if (!usuario) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+
+  const usuarioConRol = await this.usuarioRepository.findOne({
+    where: { usuario_auth_id: usuario.id },
+    relations: ['perfilStaff', 'perfilStaff.rolStaff'],
   });
 
-  // 2. Validación de existencia
-  if (!usuario) {
-    throw new UnauthorizedException('Credenciales inválidas');
-  }
+  // 3. Extraemos el nombre del rol (SuperAdmin, Prensa, etc.)
+  // Si no tiene perfil de staff, le asignamos 'fan' por defecto
+  const nombreRol = usuarioConRol?.perfilStaff?.rolStaff?.nombre_rol || 'fan';
 
- const usuarioConRol = await this.usuarioRepository.findOne({
-  where: { usuario_auth_id: usuario.id },
-  relations: ['perfilStaff', 'perfilStaff.rolStaff'],
-});
+    // 3. Comparamos la clave
+    const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
 
-// 3. Extraemos el nombre del rol (SuperAdmin, Prensa, etc.)
-// Si no tiene perfil de staff, le asignamos 'fan' por defecto
-const nombreRol = usuarioConRol?.perfilStaff?.rolStaff?.nombre_rol || 'fan';
+    if (!esValida) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
 
-  // 3. Comparamos la clave
-  const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
+  
+    // 4. Actualizamos el último login en la base de datos
+    // usuario.ultimo_login = new Date(); 
+    // await this.usuarioAuthRepository.save(usuario); 
 
-  if (!esValida) {
-    throw new UnauthorizedException('Credenciales inválidas');
-  }
-
- 
-  // 4. Actualizamos el último login en la base de datos
-  // usuario.ultimo_login = new Date(); 
-  // await this.usuarioAuthRepository.save(usuario); 
-
-  const payload = { 
-    sub: usuario.id, 
-    email: usuario.email, 
-    rol: nombreRol 
-};
-
-  // 6. Devolvemos el token (El usuario se lo lleva, vos guardaste la fecha en SQL)
-  return {
-    access_token: await this.jwtService.signAsync(payload),
+    const payload = { 
+      sub: usuario.id, 
+      email: usuario.email, 
+      rol: nombreRol 
   };
-}
 
-async forgotPassword(email: string) {
-  // 1. Verificar si el usuario existe
-  const usuario = await this.usuarioAuthRepository.findOneBy({ email });
-
-  if (!usuario) {
-    throw new NotFoundException('No se encontró un usuario con ese correo electrónico.');
+    // 6. Devolvemos el token (El usuario se lo lleva, vos guardaste la fecha en SQL)
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+    };
   }
 
-  // 2. Generar un token aleatorio seguro de 64 caracteres
-  const token = crypto.randomBytes(32).toString('hex');
+  async forgotPassword(email: string) {
+    // 1. Verificar si el usuario existe
+    const usuario = await this.usuarioAuthRepository.findOne({
+      where: { email },
+      withDeleted: true
+    });
 
-  // 3. Definir la expiración (ejemplo: 15 minutos desde ahora)
-  const tiempoExpiracion = new Date();
-  tiempoExpiracion.setMinutes(tiempoExpiracion.getMinutes() + 15);
+    if (!usuario) {
+      throw new NotFoundException('No se encontró un usuario con ese correo electrónico.');
+    }
 
-  // 4. Guardar en los campos que ya tienes en la tabla
-  usuario.token_recuperacion = token;
-  usuario.token_expiracion = tiempoExpiracion;
+    // 2. Generar un token aleatorio seguro de 64 caracteres
+    const token = crypto.randomBytes(32).toString('hex');
 
-  await this.usuarioAuthRepository.save(usuario);
+    // 3. Definir la expiración (ejemplo: 15 minutos desde ahora)
+    const tiempoExpiracion = new Date();
+    tiempoExpiracion.setMinutes(tiempoExpiracion.getMinutes() + 15);
 
-  // 5. En el futuro aquí enviaremos el mail con NodeMailer. 
-  // Por ahora lo devolvemos para testear en Postman.
-  return {
-    message: 'Se ha generado un token de recuperación (válido por 15 min).',
-    token: token // <--- Esto lo copiamos para el siguiente paso en Postman
-  };
-}
+    // 4. Guardar en los campos que ya tienes en la tabla
+    usuario.token_recuperacion = token;
+    usuario.token_expiracion = tiempoExpiracion;
 
-async resetPassword(resetPasswordDto: ResetPasswordDto) {
-  const { token, nuevaContrasena } = resetPasswordDto;
+    await this.usuarioAuthRepository.save(usuario);
 
-  // 1. Buscar al usuario que tenga ese token Y que no haya expirado aún
+    // 5. En el futuro aquí enviaremos el mail con NodeMailer. 
+    // Por ahora lo devolvemos para testear en Postman.
+    return {
+      message: 'Se ha generado un token de recuperación (válido por 15 min).',
+      token: token // <--- Esto lo copiamos para el siguiente paso en Postman
+    };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+   const { token, nuevaContrasena } = resetPasswordDto;
+
   const usuario = await this.usuarioAuthRepository.findOne({
     where: { 
       token_recuperacion: token,
       token_expiracion: MoreThan(new Date()) 
-    }
+    },
+    withDeleted: true 
   });
 
-  if (!usuario) {
-    throw new BadRequestException('El token es inválido o ha expirado.');
+    if (!usuario) {
+      throw new BadRequestException('El token es inválido o ha expirado.');
+    }
+
+    // 2. Hashear la nueva contraseña (la que validamos con la Regex fuerte)
+    const salt = await bcrypt.genSalt(10);
+    usuario.contrasena_hash = await bcrypt.hash(nuevaContrasena, salt);
+
+    // 3. ¡MUY IMPORTANTE!: Limpiar el token para que no se pueda usar de nuevo
+    usuario.token_recuperacion = null;
+    usuario.token_expiracion = null;
+
+    await this.usuarioAuthRepository.save(usuario);
+
+    return { message: 'Tu contraseña ha sido actualizada correctamente. Ya puedes iniciar sesión.' };
   }
 
-  // 2. Hashear la nueva contraseña (la que validamos con la Regex fuerte)
-  const salt = await bcrypt.genSalt(10);
-  usuario.contrasena_hash = await bcrypt.hash(nuevaContrasena, salt);
+  // SOLICITAR BAJA (El usuario desde su perfil)
+  async remove (authId: number) {
+    const auth = await this.usuarioAuthRepository.findOne({
+      where: { id: authId },
+      relations: ['usuario', 'usuario.perfilStaff'] // Traemos toda la cadena
+    });
 
-  // 3. ¡MUY IMPORTANTE!: Limpiar el token para que no se pueda usar de nuevo
-  usuario.token_recuperacion = null;
-  usuario.token_expiracion = null;
+    if (!auth) throw new NotFoundException('Cuenta no encontrada');
 
-  await this.usuarioAuthRepository.save(usuario);
+    await this.usuarioAuthRepository.softRemove(auth); // Borra Auth -> Usuario -> Staff
+    return { message: "Tu cuenta ha sido desactivada correctamente." };
+  }
 
-  return { message: 'Tu contraseña ha sido actualizada correctamente. Ya puedes iniciar sesión.' };
-}
+  // REACTIVAR CUENTA (con el token enviado por email)
+  async restore(token: string) {
+    
+    const auth = await this.usuarioAuthRepository.findOne({
+      where: { 
+        token_recuperacion: token,
+        token_expiracion: MoreThan(new Date()) 
+      },
+      withDeleted: true, // CLAVE: para encontrar al que está en la "papelera"
+      relations: ['usuario', 'usuario.perfilStaff']
+    });
+
+    if (!auth) {
+      throw new BadRequestException('El token de reactivación es inválido o ha expirado.');
+    }
+
+    // 2. Quitamos la marca de borrado de toda la cadena (Auth -> Usuario -> Staff)
+    await this.usuarioAuthRepository.recover(auth);
+
+    // 3. Limpiamos los campos del token para que no se use de nuevo
+    auth.token_recuperacion = null;
+    auth.token_expiracion = null;
+    await this.usuarioAuthRepository.save(auth);
+
+    return { message: "¡Cuenta reactivada! Ya puedes iniciar sesión normalmente." };
+  }
+
 }
 
   

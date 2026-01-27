@@ -44,38 +44,38 @@ export class UsuarioService {
     }
   }
 
-  async remove(id: number) {
-    const usuario = await this.findOne(id);
+  // async remove(id: number) {
+  //   const usuario = await this.findOne(id);
     
-    // Usamos softRemove para que TypeORM llene la columna 'eliminado_en'
-    // sin borrar el registro de la base de datos
-    await this.usuarioRepository.softRemove(usuario);
+  //   // Usamos softRemove para que TypeORM llene la columna 'eliminado_en'
+  //   // sin borrar el registro de la base de datos
+  //   await this.usuarioRepository.softRemove(usuario);
     
-    return { message: `El usuario ${usuario.nombre} ${usuario.apellido} ha sido dado de baja correctamente.` };
-  }
+  //   return { message: `El usuario ${usuario.nombre} ${usuario.apellido} ha sido dado de baja correctamente.` };
+  // }
 
-  async restore(id: number) {
-    // 1. Buscamos al usuario INCLUYENDO a los borrados (si no, findOne no lo vería)
-    const usuario = await this.usuarioRepository.findOne({
-      where: { id },
-      withDeleted: true 
-    });
+//   async restore(id: number) {
+//     // 1. Buscamos al usuario INCLUYENDO a los borrados (si no, findOne no lo vería)
+//     const usuario = await this.usuarioRepository.findOne({
+//       where: { id },
+//       withDeleted: true 
+//     });
 
-    if (!usuario) {
-      throw new NotFoundException(`No se encontró el usuario con ID ${id}`);
-    }
+//     if (!usuario) {
+//       throw new NotFoundException(`No se encontró el usuario con ID ${id}`);
+//     }
 
-    if (!usuario.eliminado_en) {
-      throw new BadRequestException('El usuario ya se encuentra activo.');
-    }
+//     if (!usuario.eliminado_en) {
+//       throw new BadRequestException('El usuario ya se encuentra activo.');
+//     }
 
-    // 2. Restauramos: esto vuelve a poner 'eliminado_en' en NULL
-    await this.usuarioRepository.recover(usuario);
+//     // 2. Restauramos: esto vuelve a poner 'eliminado_en' en NULL
+//     await this.usuarioRepository.recover(usuario);
 
-    return { 
-      message: `El usuario ${usuario.nombre} ${usuario.apellido} ha sido reactivado exitosamente.` 
-    };
-}
+//     return { 
+//       message: `El usuario ${usuario.nombre} ${usuario.apellido} ha sido reactivado exitosamente.` 
+//     };
+// }
 
   async findAll(query: { ciudad?: string; provincia?: string; activo?: string }) {
       const { ciudad, provincia, activo } = query;

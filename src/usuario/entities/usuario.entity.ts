@@ -1,6 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn } from 'typeorm';
 import { UsuarioAuth } from '../../usuario_auth/entities/usuario_auth.entity';
-import { DeleteDateColumn } from 'typeorm';
 import { PerfilStaff } from 'src/perfil-staff/entities/perfil-staff.entity';
 
 @Entity('usuario')
@@ -66,6 +65,9 @@ export class Usuario {
   auth: UsuarioAuth;
 
   // Relación con PerfilStaff (si es staff)
-  @OneToOne(() => PerfilStaff, (perfil) => perfil.usuario)
+  @OneToOne(() => PerfilStaff, (perfil) => perfil.usuario, { 
+  cascade: ['soft-remove', 'recover'] 
+  })
   perfilStaff: PerfilStaff;
+
 }

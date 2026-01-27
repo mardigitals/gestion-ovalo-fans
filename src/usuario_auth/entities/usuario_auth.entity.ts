@@ -1,5 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-import { OneToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, DeleteDateColumn, OneToOne } from 'typeorm';
 import { Usuario } from '../../usuario/entities/usuario.entity';
 
 @Entity('usuario_auth') // Vincula esta clase con tu tabla real
@@ -41,10 +40,12 @@ export class UsuarioAuth {
   @Column({ length: 255, nullable: true })
   navegador_dispositivo: string;
 
-  @Column({ type: 'datetime', nullable: true })
+  @DeleteDateColumn({ type: 'datetime', nullable: true })
   eliminado_en: Date; // Tu Baja Lógica
 
-  @OneToOne(() => Usuario, (usuario) => usuario.auth)
-  perfil: Usuario;
+  @OneToOne(() => Usuario, (usuario) => usuario.auth, {
+    cascade: ['soft-remove', 'recover']
+  })
+  usuario: Usuario;
  
 }

@@ -2,7 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } f
 import { UsuarioService } from './usuario.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
-
+import { Roles } from '../usuario_auth/decorators/roles.decorators';
 import { JwtAuthGuard } from '../usuario_auth/guards/jwt.auth.guards';
 
 @UseGuards(JwtAuthGuard)
@@ -17,6 +17,7 @@ export class UsuarioController {
 
 
   @Get()
+  @Roles('SuperAdmin', 'Administrativo') 
   findAll(@Query() query: any) { // El decorador @Query captura los parámetros de la URL
     return this.usuarioService.findAll(query);
   }
@@ -34,14 +35,14 @@ export class UsuarioController {
   }
 
   
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usuarioService.remove(+id);
-  }
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.usuarioService.remove(+id);
+  // }
 
   
-  @Patch(':id/restore')
-  restore(@Param('id') id: string) {
-    return this.usuarioService.restore(+id);
-  }
+  // @Patch(':id/restore')
+  // restore(@Param('id') id: string) {
+  //   return this.usuarioService.restore(+id);
+  // }
 }
