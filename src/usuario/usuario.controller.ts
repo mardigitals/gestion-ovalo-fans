@@ -34,15 +34,4 @@ export class UsuarioController {
     return this.usuarioService.update(+id, updateUsuarioDto);
   }
 
-  
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.usuarioService.remove(+id);
-  // }
-
-  
-  // @Patch(':id/restore')
-  // restore(@Param('id') id: string) {
-  //   return this.usuarioService.restore(+id);
-  // }
 }

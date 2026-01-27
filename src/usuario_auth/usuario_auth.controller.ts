@@ -1,11 +1,12 @@
-import { Controller, Post, Body, Get, UseGuards, Request, Delete, Patch } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, Delete, Patch, Param } from '@nestjs/common';
 import { UsuarioAuthService } from './usuario_auth.service';
 import { CreateUsuarioAuthDto } from './dto/create-usuario_auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt.auth.guards'; 
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-
+import { Roles } from './decorators/roles.decorators';
+import { RolesGuard } from './guards/roles.guards';
 
 
 @Controller('usuario-auth')
@@ -16,7 +17,6 @@ export class UsuarioAuthController {
   create(@Body() createUsuarioAuthDto: CreateUsuarioAuthDto) {
     return this.usuarioAuthService.create(createUsuarioAuthDto);
   }
-
 
   @Post('login') 
   login(@Body() loginDto: LoginDto) {
@@ -53,6 +53,20 @@ export class UsuarioAuthController {
   obtenerPerfil(@Request() req) {
     // Si llegamos acá, el token es válido y los datos están en req.user
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin')
+  @Patch(':id/suspend')
+  suspendByAdmin(@Param('id') id: string) {
+    return this.usuarioAuthService.suspendByAdmin(+id);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin')
+  @Patch(':id/restart')
+  restartByAdmin(@Param('id') id: string) {
+    return this.usuarioAuthService.restartByAdmin(+id);
   }
 
 }

@@ -52,7 +52,7 @@ export class UsuarioAuthService {
     // 1. Buscamos al usuario
     const usuario = await this.usuarioAuthRepository.findOne({
       where: { email },
-      select: ['id', 'email', 'contrasena_hash'] // Necesitamos el hash para comparar
+      select: ['id', 'email', 'contrasena_hash', 'estado_cuenta'] // Necesitamos el hash para comparar
     });
 
     // 2. Validación de existencia
@@ -60,37 +60,42 @@ export class UsuarioAuthService {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-  const usuarioConRol = await this.usuarioRepository.findOne({
-    where: { usuario_auth_id: usuario.id },
-    relations: ['perfilStaff', 'perfilStaff.rolStaff'],
-  });
-
-  // 3. Extraemos el nombre del rol (SuperAdmin, Prensa, etc.)
-  // Si no tiene perfil de staff, le asignamos 'fan' por defecto
-  const nombreRol = usuarioConRol?.perfilStaff?.rolStaff?.nombre_rol || 'fan';
-
-    // 3. Comparamos la clave
-    const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
-
-    if (!esValida) {
-      throw new UnauthorizedException('Credenciales inválidas');
+    //3. Verificar estado de la cuenta
+    if (usuario.estado_cuenta === 'Bloqueado') {
+      throw new UnauthorizedException('Tu cuenta ha sido suspendida por la administración del Autódromo.');
     }
 
-  
-    // 4. Actualizamos el último login en la base de datos
-    // usuario.ultimo_login = new Date(); 
-    // await this.usuarioAuthRepository.save(usuario); 
+    const usuarioConRol = await this.usuarioRepository.findOne({
+      where: { usuario_auth_id: usuario.id },
+      relations: ['perfilStaff', 'perfilStaff.rolStaff'],
+    });
 
-    const payload = { 
-      sub: usuario.id, 
-      email: usuario.email, 
-      rol: nombreRol 
-  };
+    // 4. Extraemos el nombre del rol (SuperAdmin, Prensa, etc.)
+    // Si no tiene perfil de staff, le asignamos 'fan' por defecto
+    const nombreRol = usuarioConRol?.perfilStaff?.rolStaff?.nombre_rol || 'fan';
 
-    // 6. Devolvemos el token (El usuario se lo lleva, vos guardaste la fecha en SQL)
-    return {
-      access_token: await this.jwtService.signAsync(payload),
+      // 3. Comparamos la clave
+      const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
+
+      if (!esValida) {
+        throw new UnauthorizedException('Credenciales inválidas');
+      }
+
+    
+      // 4. Actualizamos el último login en la base de datos
+      // usuario.ultimo_login = new Date(); 
+      // await this.usuarioAuthRepository.save(usuario); 
+
+      const payload = { 
+        sub: usuario.id, 
+        email: usuario.email, 
+        rol: nombreRol 
     };
+
+      // 6. Devolvemos el token (El usuario se lo lleva, vos guardaste la fecha en SQL)
+      return {
+        access_token: await this.jwtService.signAsync(payload),
+      };
   }
 
   async forgotPassword(email: string) {
@@ -191,6 +196,37 @@ export class UsuarioAuthService {
     await this.usuarioAuthRepository.save(auth);
 
     return { message: "¡Cuenta reactivada! Ya puedes iniciar sesión normalmente." };
+  }
+
+  async suspendByAdmin (id: number) {
+    const auth = await this.usuarioAuthRepository.findOneBy({ id });
+    if (!auth) throw new NotFoundException('Usuario no encontrado');
+
+    auth.estado_cuenta = 'Bloqueado';
+    await this.usuarioAuthRepository.save(auth);
+
+    return { message: `Cuenta con ID ${id} ha sido suspendida` };
+  }
+
+  // REANUDACIÓN (Acción del SuperAdmin)
+  async restartByAdmin(id: number) {
+    const auth = await this.usuarioAuthRepository.findOne({ 
+      where: { id }, 
+      withDeleted: true 
+    });
+    
+    if (!auth) throw new NotFoundException('Usuario no encontrado');
+
+    auth.estado_cuenta = 'Activo';
+    
+    // Si estaba borrado lógicamente, lo recuperamos también
+    if (auth.eliminado_en) {
+      await this.usuarioAuthRepository.recover(auth);
+    } else {
+      await this.usuarioAuthRepository.save(auth);
+    }
+
+    return { message: `La cuenta con ID ${id} ha sido reactivada.` };
   }
 
 }
