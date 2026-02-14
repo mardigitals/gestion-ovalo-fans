@@ -15,11 +15,17 @@ export class ContenidoMultimedia {
   @Column({ length: 255 })
   url_recurso: string;
 
-  @Column({ type: 'int', default: 0 })
-  nivel_acceso_requerido: number;
+  @Column({ type: 'int', nullable: true })
+  nivel_acceso_requerido: number | null;
 
   @CreateDateColumn()
   fecha_publicacion: Date;
+
+  @Column({ type: 'int', default: 0 })
+  vistas: number;
+
+  @Column({ type: 'boolean', default: false })
+  es_destacado: boolean;
 
   // Relación con PerfilStaff (la línea verde en tu diagrama)
   @ManyToOne(() => PerfilStaff, (staff) => staff.contenidos)

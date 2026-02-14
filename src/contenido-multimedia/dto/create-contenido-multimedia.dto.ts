@@ -5,7 +5,8 @@ import {
   IsUrl, 
   IsInt, 
   IsOptional, 
-  Min, 
+  Min,
+  IsBoolean, 
   MaxLength 
 } from 'class-validator';
 
@@ -26,8 +27,12 @@ export class CreateContenidoMultimediaDto {
   url_recurso: string;
 
   @IsInt({ message: 'El nivel de acceso debe ser un número entero' })
-  @Min(0, { message: 'El nivel de acceso no puede ser negativo' })
   @IsOptional()
+  @Min(0, { message: 'El nivel de acceso no puede ser negativo' })
   nivel_acceso_requerido?: number;
+
+  @IsBoolean({ message: 'es_destacado debe ser un valor booleano' })
+  @IsOptional()
+  es_destacado?: boolean;
 
 }

@@ -1,8 +1,14 @@
 import { Module } from '@nestjs/common';
 import { ContenidoMultimediaService } from './contenido-multimedia.service';
 import { ContenidoMultimediaController } from './contenido-multimedia.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ContenidoMultimedia } from './entities/contenido-multimedia.entity';
+import { PerfilStaff } from 'src/perfil-staff/entities/perfil-staff.entity';
 
 @Module({
+  imports: [
+    TypeOrmModule.forFeature([ContenidoMultimedia, PerfilStaff]) 
+  ],
   controllers: [ContenidoMultimediaController],
   providers: [ContenidoMultimediaService],
 })
