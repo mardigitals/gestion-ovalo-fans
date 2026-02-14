@@ -8,6 +8,7 @@ import { UsuarioModule } from './usuario/usuario.module';
 import { PerfilFanModule } from './perfil-fan/perfil-fan.module';
 import { PerfilStaffModule } from './perfil-staff/perfil-staff.module';
 import { RolStaffModule } from './rol-staff/rol-staff.module';
+import { ContenidoMultimediaModule } from './contenido-multimedia/contenido-multimedia.module';
 
 @Module({
   imports: [
@@ -38,6 +39,8 @@ import { RolStaffModule } from './rol-staff/rol-staff.module';
     PerfilStaffModule,
     
     RolStaffModule,
+    
+    ContenidoMultimediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

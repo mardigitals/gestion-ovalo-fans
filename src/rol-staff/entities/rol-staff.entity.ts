@@ -12,4 +12,5 @@ export class RolStaff {
   // Relación inversa: Un rol puede pertenecer a muchos miembros del staff
   @OneToMany(() => PerfilStaff, (perfil) => perfil.rolStaff)
   perfiles: PerfilStaff[];
+
 }

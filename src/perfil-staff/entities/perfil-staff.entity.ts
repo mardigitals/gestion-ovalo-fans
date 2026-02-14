@@ -1,6 +1,7 @@
 import { Usuario } from 'src/usuario/entities/usuario.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import { RolStaff } from '../../rol-staff/entities/rol-staff.entity';
+import { ContenidoMultimedia } from 'src/contenido-multimedia/entities/contenido-multimedia.entity';
 
 @Entity('perfil_staff')
 export class PerfilStaff {
@@ -35,4 +36,9 @@ export class PerfilStaff {
   @JoinColumn({ name: 'rol_staff_id' })
   rolStaff: RolStaff;
 
+  // Relación inversa: Un perfil puede tener  muchos contenidos
+  @OneToMany(() => ContenidoMultimedia, (contenido) => contenido.autor)
+  contenidos: ContenidoMultimedia[];
+
 }
+
