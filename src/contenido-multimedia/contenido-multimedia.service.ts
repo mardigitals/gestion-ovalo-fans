@@ -45,7 +45,10 @@ export class ContenidoMultimediaService {
   async findAll() {
     const resultados = await this.contenidoRepo.find({
       relations: ['autor', 'autor.usuario'],
-      order: { fecha_publicacion: 'DESC' }
+      order: { 
+        es_destacado: 'DESC',      
+        fecha_publicacion: 'DESC'  
+      }
     });
 
     return resultados.map(item => ({
