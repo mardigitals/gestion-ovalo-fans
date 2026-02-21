@@ -9,7 +9,7 @@ export class ContenidoMultimedia {
   @Column({ length: 150 })
   titulo: string;
 
-  @Column({ type: 'enum', enum: ['noticia', 'video', 'imagen'] }) // Ajustá según tus tipos reales
+  @Column({ type: 'enum', enum: ['noticia', 'video', 'imagen'] }) 
   tipo: string;
 
   @Column({ length: 255 })
@@ -27,7 +27,7 @@ export class ContenidoMultimedia {
   @Column({ type: 'boolean', default: false })
   es_destacado: boolean;
 
-  // Relación con PerfilStaff (la línea verde en tu diagrama)
+  // Relación con PerfilStaff 
   @ManyToOne(() => PerfilStaff, (staff) => staff.contenidos)
   @JoinColumn({ name: 'autor_staff_id' })
   autor: PerfilStaff;
