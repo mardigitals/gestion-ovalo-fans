@@ -9,6 +9,7 @@ import { PerfilFanModule } from './perfil-fan/perfil-fan.module';
 import { PerfilStaffModule } from './perfil-staff/perfil-staff.module';
 import { RolStaffModule } from './rol-staff/rol-staff.module';
 import { ContenidoMultimediaModule } from './contenido-multimedia/contenido-multimedia.module';
+import { MembresiaModule } from './membresia/membresia.module';
 
 @Module({
   imports: [
@@ -41,6 +42,8 @@ import { ContenidoMultimediaModule } from './contenido-multimedia/contenido-mult
     RolStaffModule,
     
     ContenidoMultimediaModule,
+    
+    MembresiaModule,
   ],
   controllers: [AppController],
   providers: [AppService],
