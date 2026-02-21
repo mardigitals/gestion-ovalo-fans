@@ -18,10 +18,17 @@ export class ContenidoMultimediaService {
 
   // 1. CREATE con mapeo limpio
   async create(createDto: CreateContenidoMultimediaDto, userId: number) {
-    const staff = await this.staffRepo.findOne({ where: { usuario_id: userId } });
+    const staff = await this.staffRepo.findOne({ where: { usuario_id: userId },
+    relations: ['usuario', 'rolStaff'] 
+  });
     
     if (!staff) {
       throw new UnauthorizedException('No tienes un perfil de staff para publicar contenido.');
+    }
+
+    const rolesPermitidos = ['Prensa', 'SuperAdmin'];
+    if (!rolesPermitidos.includes(staff.rolStaff.nombre_rol)) {
+      throw new ForbiddenException(`Tu rol (${staff.rolStaff.nombre_rol}) no tiene permisos para publicar contenido.`);
     }
 
     const nuevo = this.contenidoRepo.create({
