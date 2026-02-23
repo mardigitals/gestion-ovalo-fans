@@ -1,13 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { CreateMembresiaDto } from './dto/create-membresia.dto';
 import { UpdateMembresiaDto } from './dto/update-membresia.dto';
-
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Membresia } from './entities/membresia.entity';
 @Injectable()
 export class MembresiaService {
-  create(createMembresiaDto: CreateMembresiaDto) {
-    return 'This action adds a new membresia';
-  }
 
+  constructor( 
+    @InjectRepository(Membresia)
+    private readonly membresiaRepository: Repository<Membresia>,
+  ) {}
+
+  async create(createMembresiaDto: CreateMembresiaDto) {
+    const existe = await this.membresiaRepository.findOne({ 
+      where: { nombre: createMembresiaDto.nombre } 
+    });
+
+    if (existe) {
+      throw new BadRequestException(`Ya existe una membresía con el nombre: ${createMembresiaDto.nombre}`);
+    }
+
+    const membresia = this.membresiaRepository.create(createMembresiaDto);
+    return await this.membresiaRepository.save(membresia);
+  }
+  
   findAll() {
     return `This action returns all membresia`;
   }
