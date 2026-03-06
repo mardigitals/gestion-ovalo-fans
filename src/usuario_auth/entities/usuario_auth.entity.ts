@@ -40,8 +40,8 @@ export class UsuarioAuth {
   @Column({ length: 255, nullable: true })
   navegador_dispositivo: string;
 
-  @DeleteDateColumn({ type: 'datetime', nullable: true })
-  eliminado_en: Date; // Tu Baja Lógica
+  @DeleteDateColumn({ name: 'eliminado_en', type: 'datetime', nullable: true })
+  eliminado_en: Date; 
 
   @OneToOne(() => Usuario, (usuario) => usuario.auth, {
     cascade: ['soft-remove', 'recover']

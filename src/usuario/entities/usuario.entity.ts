@@ -56,7 +56,7 @@ export class Usuario {
   @Column({ length: 50, default: 'Argentina' })
   pais: string;
 
-  @DeleteDateColumn({ type: 'datetime', nullable: true })
+  @DeleteDateColumn({ name: 'eliminado_en', type: 'datetime', nullable: true })
   eliminado_en: Date;
 
   // La relación 1:1 con la tabla de seguridad

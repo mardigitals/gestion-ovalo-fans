@@ -27,7 +27,7 @@ export class PerfilFan {
   @Column({ type: 'enum', enum: ['1 de adentro','1 de afuera','2 de adentro','2 de afuera','3'], nullable: true })
   chicana_favorita?: string | null;
 
-  @DeleteDateColumn({ type: 'datetime', nullable: true })
+  @DeleteDateColumn({ name: 'eliminado_en', type: 'datetime', nullable: true })
   eliminado_en: Date;
 
   // La relación 1:1 con la tabla de seguridad
