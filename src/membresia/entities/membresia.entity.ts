@@ -1,5 +1,5 @@
 import { ContenidoMultimedia } from "src/contenido-multimedia/entities/contenido-multimedia.entity";
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn } from "typeorm";
 
 @Entity('membresia') 
 export class Membresia {
@@ -18,6 +18,9 @@ export class Membresia {
 
     @Column({ type: 'text', nullable: true })
     descripcion_beneficios: string;
+  
+    @DeleteDateColumn({ name: 'eliminado_en', type: 'datetime', nullable: true })
+    eliminado_en: Date;
 
     // Relación inversa: Una membresia puede tener muchos contenidos asociados
     @OneToMany(() => ContenidoMultimedia, (contenido) => contenido.nivel_acceso_requerido)

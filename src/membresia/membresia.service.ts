@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { CreateMembresiaDto } from './dto/create-membresia.dto';
 import { UpdateMembresiaDto } from './dto/update-membresia.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -25,19 +25,61 @@ export class MembresiaService {
     return await this.membresiaRepository.save(membresia);
   }
   
-  findAll() {
-    return `This action returns all membresia`;
+  async findAll() {
+    return await this.membresiaRepository.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} membresia`;
+  async findOne(id: number) {
+    const membresia = await this.membresiaRepository.findOneBy({ id });
+    
+    if (!membresia) {
+      throw new NotFoundException(`La membresía con ID ${id} no existe`);
+    }
+    
+    return membresia;
   }
 
-  update(id: number, updateMembresiaDto: UpdateMembresiaDto) {
-    return `This action updates a #${id} membresia`;
+
+  async update(id: number, updateMembresiaDto: UpdateMembresiaDto) {
+    
+    const membresia = await this.findOne(id);
+
+    const membresiaActualizada = this.membresiaRepository.merge(membresia, updateMembresiaDto);
+
+    return await this.membresiaRepository.save(membresiaActualizada);
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} membresia`;
+
+  async remove(id: number) {
+    const membresia = await this.findOne(id);
+    
+    await this.membresiaRepository.softRemove(membresia);
+
+    return { 
+      message: `La membresía '${membresia.nombre}' fue dada de baja. Ya no será visible para nuevos socios, pero se mantiene el registro histórico.` 
+    };
   }
+
+  
+  async restore(id: number) {
+    
+    const membresia = await this.membresiaRepository.findOne({
+      where: { id },
+      withDeleted: true, 
+    });
+
+    if (!membresia) {
+      throw new NotFoundException(`No se encontró la membresía con ID ${id}`);
+    }
+
+    if (!membresia.eliminado_en) {
+      throw new BadRequestException('La membresía ya se encuentra activa');
+    }
+
+    await this.membresiaRepository.restore(id);
+    
+    return { 
+      message: `La membresía '${membresia.nombre}' ha sido reactivada correctamente.` 
+    };
+}
 }

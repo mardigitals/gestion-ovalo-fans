@@ -25,7 +25,7 @@ export class MembresiaController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.membresiaService.findOne(+id);
-  } //tiene sentido un  find by id si son solo 3?
+  }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -40,4 +40,11 @@ export class MembresiaController {
   remove(@Param('id') id: string) {
     return this.membresiaService.remove(+id);
   }
+
+  @Patch(':id/restore')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin')
+  restore(@Param('id') id: string) {
+    return this.membresiaService.restore(+id);
+}
 }
