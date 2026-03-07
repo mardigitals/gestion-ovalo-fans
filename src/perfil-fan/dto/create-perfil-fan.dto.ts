@@ -2,9 +2,6 @@ import { IsBoolean, IsEnum, IsNumber, IsOptional, IsString, MaxLength } from 'cl
 
 export class CreatePerfilFanDto {
     
-  @IsNumber()
-  usuario_id: number;
-
   @IsString()
   @MaxLength(20)
   alias: string;

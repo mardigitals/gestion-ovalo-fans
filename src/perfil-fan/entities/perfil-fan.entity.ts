@@ -1,7 +1,7 @@
 import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn } from 'typeorm';
 
-@Entity('fan')
+@Entity('perfil_fan')
 export class PerfilFan {
   @PrimaryGeneratedColumn()
   id: number;
