@@ -1,5 +1,6 @@
 import { Usuario } from 'src/usuario/entities/usuario.entity';
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn, OneToMany } from 'typeorm';
+import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
 
 @Entity('perfil_fan')
 export class PerfilFan {
@@ -34,4 +35,8 @@ export class PerfilFan {
   @OneToOne(() => Usuario)
   @JoinColumn({ name: 'usuario_id' })
   usuario: Usuario;
+
+  //Relacion inversa a suscripcion
+  @OneToMany(() =>  Suscripcion, (suscripcion) => suscripcion.perfilFan)
+    suscripciones: Suscripcion[];
 }

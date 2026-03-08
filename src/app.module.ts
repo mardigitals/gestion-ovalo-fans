@@ -10,6 +10,7 @@ import { PerfilStaffModule } from './perfil-staff/perfil-staff.module';
 import { RolStaffModule } from './rol-staff/rol-staff.module';
 import { ContenidoMultimediaModule } from './contenido-multimedia/contenido-multimedia.module';
 import { MembresiaModule } from './membresia/membresia.module';
+import { SuscripcionModule } from './suscripcion/suscripcion.module';
 
 @Module({
   imports: [
@@ -44,6 +45,8 @@ import { MembresiaModule } from './membresia/membresia.module';
     ContenidoMultimediaModule,
     
     MembresiaModule,
+    
+    SuscripcionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

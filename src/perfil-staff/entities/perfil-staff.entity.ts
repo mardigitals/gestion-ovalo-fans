@@ -2,6 +2,7 @@ import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, DeleteDateColumn, ManyToOne, OneToMany } from 'typeorm';
 import { RolStaff } from '../../rol-staff/entities/rol-staff.entity';
 import { ContenidoMultimedia } from 'src/contenido-multimedia/entities/contenido-multimedia.entity';
+import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
 
 @Entity('perfil_staff')
 export class PerfilStaff {
@@ -39,6 +40,9 @@ export class PerfilStaff {
   // Relación inversa: Un perfil puede tener  muchos contenidos
   @OneToMany(() => ContenidoMultimedia, (contenido) => contenido.autor)
   contenidos: ContenidoMultimedia[];
+
+  @OneToMany(() => Suscripcion, (suscripcion) => suscripcion.staffControl)
+  suscripciones: Suscripcion[];
 
 }
 

@@ -1,5 +1,6 @@
 import { ContenidoMultimedia } from "src/contenido-multimedia/entities/contenido-multimedia.entity";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, DeleteDateColumn } from "typeorm";
+import { Suscripcion } from "src/suscripcion/entities/suscripcion.entity";
 
 @Entity('membresia') 
 export class Membresia {
@@ -26,5 +27,8 @@ export class Membresia {
     @OneToMany(() => ContenidoMultimedia, (contenido) => contenido.nivel_acceso_requerido)
     contenidos: ContenidoMultimedia[];
 
-     // Relación inversa: Un membresia puede tener muchas suscripciones
+    // Una membresia puede tener muchas suscripciones
+    @OneToMany(() => Suscripcion, (suscripcion) => suscripcion.membresia)
+    suscripciones: Suscripcion[];
+    
 }
