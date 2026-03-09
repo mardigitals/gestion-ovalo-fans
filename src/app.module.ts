@@ -11,10 +11,12 @@ import { RolStaffModule } from './rol-staff/rol-staff.module';
 import { ContenidoMultimediaModule } from './contenido-multimedia/contenido-multimedia.module';
 import { MembresiaModule } from './membresia/membresia.module';
 import { SuscripcionModule } from './suscripcion/suscripcion.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     
     // Cambiamos forRoot por forRootAsync
     TypeOrmModule.forRootAsync({
