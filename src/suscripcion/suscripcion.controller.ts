@@ -18,21 +18,21 @@ export class SuscripcionController {
   @Post()
   async create(@Body() createSuscripcionDto: CreateSuscripcionDto, @Request() req) {
     // Validamos que el perfil_fan_id del body sea el del usuario logueado por seguridad
-    return await this.suscripcionService.crearIntencion(createSuscripcionDto);
+    return await this.suscripcionService.crearIntencion(createSuscripcionDto, req.user.userId);
   }
 
   // 2. CANCELAR SUSCRIPCIÓN (Solo Fans - Abierto con JWT)
   @Patch('cancelar/:id')
   async cancel(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const fanId = req.user.userId; // Extraído del token
-    return await this.suscripcionService.cancelar(id, fanId);
+    const authId = req.user.userId; // Extraído del token
+    return await this.suscripcionService.cancelar(id, authId);
   }
 
   // 3. VERIFICAR ACCESO (Automático con JWT para el Fan)
   @Get('validar-acceso')
   async checkAccess(@Request() req) {
-    const fanId = req.user.userId; // El fan consulta su propio acceso
-    const tieneAcceso = await this.suscripcionService.validarAccesoFan(fanId);
+    const authId = req.user.userId; // El fan consulta su propio acceso
+    const tieneAcceso = await this.suscripcionService.validarAccesoFan(authId);
     return { tieneAcceso };
   }
 

@@ -20,19 +20,31 @@ export class SuscripcionService {
    * 1. INICIAR SUSCRIPCIÓN (Estado: Pendiente)
    * Se dispara cuando el fan elige un plan en el frontend.
    */
-  async crearIntencion(createSuscripcionDto: CreateSuscripcionDto) {
-    // Validar que no tenga otra suscripción ya activa
+  async crearIntencion(dto: CreateSuscripcionDto, authId: number) {
+    // 1. Buscamos el perfil fan asociado al usuario logueado (el ID 8 del debugger)
+    const perfil = await this.suscripcionRepository.manager.getRepository('PerfilFan').findOne({
+      where: { usuario: { usuario_auth_id: authId } }
+    });
+
+    if (!perfil) {
+      throw new NotFoundException('No se encontró un perfil de Fan para este usuario.');
+    }
+
+    // 2. Validar que no tenga otra suscripción ya activa
     const activa = await this.suscripcionRepository.findOne({
-      where: { perfil_fan_id: createSuscripcionDto.perfil_fan_id, estado: 'Activo' }
+      where: { perfil_fan_id: perfil.id, estado: 'Activo' }
     });
     
     if (activa) {
-      throw new BadRequestException('Ya posees una suscripción activa en el sistema.');
+      throw new BadRequestException('Ya posees una suscripción activa.');
     }
 
+    // 3. Creamos la suscripción vinculándola automáticamente al ID del perfil encontrado
     const nueva = this.suscripcionRepository.create({
-      ...createSuscripcionDto,
-      estado: 'Pendiente', // No da acceso hasta que se acredite el pago
+
+      membresia_id: dto.membresia_id, // Pasamos solo lo necesario del DTO
+      perfil_fan_id: perfil.id,
+      estado: 'Pendiente',      
     });
 
     return await this.suscripcionRepository.save(nueva);
@@ -116,8 +128,13 @@ export class SuscripcionService {
   /**
    * 5. CANCELACIÓN VOLUNTARIA
    */
-  async cancelar(id: number, fanId: number) {
-    const suscripcion = await this.suscripcionRepository.findOneBy({ id, perfil_fan_id: fanId });
+  async cancelar(id: number, authId: number) {
+    const suscripcion = await this.suscripcionRepository.findOne({
+      where: { 
+      id: id,
+      perfilFan: { usuario: { usuario_auth_id: authId } } 
+      }
+   });
     
     if (!suscripcion) throw new BadRequestException('No se pudo cancelar la suscripción.');
 
