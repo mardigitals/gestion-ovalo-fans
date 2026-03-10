@@ -147,15 +147,21 @@ export class SuscripcionService {
   }
 
   async findOne(authId: number) {
-    return await this.suscripcionRepository.findOne({
+    const suscripcion = await this.suscripcionRepository.findOne({
       where: { 
         perfilFan: { usuario: { usuario_auth_id: authId } },
-        estado: 'Activo' 
+        estado: 'Activo' // Siempre traemos la que está vigente
       },
-      order: { id: 'DESC' },
-      relations: ['membresia']
+      order: { id: 'DESC' }, // La más nueva por si acaso
+      relations: ['membresia'] // Traemos los datos del plan (Precio, nombre, etc.)
     });
+
+    if (!suscripcion) {
+      throw new NotFoundException('No tienes ninguna suscripción activa actualmente.');
+    }
+    return suscripcion;
   }
+  
   async findByEstado(estado: string) {
     return await this.suscripcionRepository.find({
       where: { estado },
