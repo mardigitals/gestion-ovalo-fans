@@ -37,10 +37,10 @@ export class SuscripcionController {
   }
 
   // 4. CONSULTAR MI SUSCRIPCIÓN (Individual - Fan con JWT)
-  @Get('mi-suscripcion/:id')
-  async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    // Aquí podrías agregar lógica para que el fan solo vea la suya
-    return await this.suscripcionService.findOne(id);
+  @Get('mi-suscripcion')
+  async findOne(@Request() req) {
+    const authId = req.user.userId;
+    return await this.suscripcionService.findOne(authId);
   }
 
   // =========================================================

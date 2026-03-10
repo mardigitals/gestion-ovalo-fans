@@ -146,13 +146,16 @@ export class SuscripcionService {
     return await this.suscripcionRepository.find({ relations: ['perfilFan', 'membresia'] });
   }
 
-  async findOne(id: number) {
-    return await this.suscripcionRepository.findOne({ 
-      where: { id }, 
-      relations: ['perfilFan', 'membresia'] 
+  async findOne(authId: number) {
+    return await this.suscripcionRepository.findOne({
+      where: { 
+        perfilFan: { usuario: { usuario_auth_id: authId } },
+        estado: 'Activo' 
+      },
+      order: { id: 'DESC' },
+      relations: ['membresia']
     });
   }
-
   async findByEstado(estado: string) {
     return await this.suscripcionRepository.find({
       where: { estado },
