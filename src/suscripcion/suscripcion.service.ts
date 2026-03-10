@@ -72,17 +72,23 @@ export class SuscripcionService {
    * 3. VALIDACIÓN DE ACCESO (Incluye 72hs de Gracia)
    * Verifica si el fan puede entrar al contenido exclusivo.
    */
-  async validarAccesoFan(fanId: number): Promise<boolean> {
+  async validarAccesoFan(authId: number): Promise<boolean> {
+    // Buscamos la suscripción activa usando el ID de Auth (el 8 que ves en el debugger)
     const suscripcion = await this.suscripcionRepository.findOne({
-      where: { perfil_fan_id: fanId, estado: 'Activo' },
+      where: { 
+        // busca el perfil que pertenece a ese usuario logueado
+        perfilFan: { usuario: { usuario_auth_id: authId } },
+        estado: 'Activo' 
+      },
       order: { fecha_fin: 'DESC' }
     });
 
+    // Si no encuentra ninguna suscripción para ese usuario, acceso denegado
     if (!suscripcion) return false;
 
     const ahora = new Date();
     const limiteGracia = new Date(suscripcion.fecha_fin);
-    limiteGracia.setHours(limiteGracia.getHours() + 72); // Sumamos las 72hs de gracia
+    limiteGracia.setHours(limiteGracia.getHours() + 72); 
 
     return ahora < limiteGracia;
   }
