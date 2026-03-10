@@ -14,10 +14,10 @@ export class Suscripcion {
   @Column({ name: 'membresia_id' })
   membresia_id: number;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'datetime', nullable: true})
   fecha_inicio: Date;
 
-  @Column({ type: 'datetime' })
+  @Column({ type: 'datetime', nullable: true})
   fecha_fin: Date;
 
   @Column({ type: 'enum', enum: ['Activo', 'Vencido', 'Cancelado', 'Pendiente'], default: 'Pendiente' })
