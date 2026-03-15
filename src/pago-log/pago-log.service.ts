@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PagoLog } from './entities/pago-log.entity';
@@ -16,7 +16,6 @@ export class PagoLogService {
     private readonly suscripcionService: SuscripcionService,
   ) {
     // INICIALIZAMOS MERCADO PAGO
-    // ¡Ojo! En producción, este token tiene que venir de tus variables de entorno (.env)
     this.mpClient = new MercadoPagoConfig({ 
       accessToken: process.env.MP_ACCESS_TOKEN || 'APP_USR-TU_ACCESS_TOKEN_ACA', 
       options: { timeout: 5000 }
@@ -49,7 +48,7 @@ export class PagoLogService {
       // 2. Verificamos si realmente se aprobó
       if (pagoReal.status === 'approved') {
         
-        // 🚨 EL SECRETO: Cuando crees el link de pago en MP, tenés que mandarle el ID de tu suscripción 
+        // Cuando cree el link de pago en MP, tenés que mandarle el ID de tu suscripción 
         // adentro de la propiedad 'external_reference'. Así sabemos a quién le corresponde esta plata.
         const suscripcionId = Number(pagoReal.external_reference);
 
@@ -93,9 +92,15 @@ export class PagoLogService {
   /**
    * GENERAR LINK DE PAGO (Checkout Pro de Mercado Pago)
    */
-  async generarLinkDePago(suscripcionId: number) {
-    // 1. Buscamos los datos reales en nuestra base de datos para que no nos hackeen el precio
+  async generarLinkDePago(suscripcionId: number, authId: number) { 
+    // 1. Buscamos los datos reales
     const suscripcion = await this.suscripcionService.obtenerPorId(suscripcionId);
+
+    //  2. EL BLINDAJE ANTI-HACKERS 
+    if (suscripcion.perfilFan.usuario.usuario_auth_id !== authId) {
+      this.logger.warn(`Intento de fraude: Usuario ${authId} intentó pagar suscripción ${suscripcionId}`);
+      throw new ForbiddenException('No tienes permiso para gestionar esta suscripción.');
+    }
 
     try {
       const preference = new Preference(this.mpClient);
@@ -106,14 +111,14 @@ export class PagoLogService {
           items: [
             {
               id: suscripcion.membresia.id.toString(),
-              title: `Membresía ${suscripcion.membresia.nombre} - Autódromo Rafaela`,
+              title: `Membresía ${suscripcion.membresia.nombre} - Autodromo Rafaela`,
               quantity: 1,
               // Nota: Acá uso el precio_mensual. Si tenés lógica de anual, lo ajustás acá.
               unit_price: Number(suscripcion.membresia.precio_mensual), 
               currency_id: 'ARS',
             }
           ],
-          // 🚨 LA MAGIA: Le mandamos el ID de la suscripción para que vuelva en el Webhook
+          // Le mandamos el ID de la suscripción para que vuelva en el Webhook
           external_reference: suscripcion.id.toString(), 
           
           // 3. ¿A dónde mandamos al fan cuando termina de pagar? (URLs de tu Frontend)
@@ -122,13 +127,13 @@ export class PagoLogService {
             failure: 'http://localhost:5173/pago/error',
             pending: 'http://localhost:5173/pago/pendiente'
           },
-          auto_return: 'approved',
+          // auto_return: 'approved',
         }
       });
 
       this.logger.log(`Link generado para suscripción #${suscripcionId} - Preferencia: ${response.id}`);
 
-      // 4. Devolvemos el link mágico
+      // 4. Devolvemos el link 
       return {
         id_preferencia: response.id,
         url_pago: response.init_point,         // Para usar en producción

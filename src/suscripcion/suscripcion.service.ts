@@ -224,7 +224,8 @@ export class SuscripcionService {
   async obtenerPorId(id: number) {
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { id },
-      relations: ['membresia']
+      // 👇 Agregamos perfilFan y su usuario para saber de quién es
+      relations: ['membresia', 'perfilFan', 'perfilFan.usuario'] 
     });
     
     if (!suscripcion) {

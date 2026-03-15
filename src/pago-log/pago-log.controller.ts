@@ -1,9 +1,9 @@
-import { Controller, Post, Body, Res, HttpStatus, BadRequestException, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus, BadRequestException, UseGuards, Request } from '@nestjs/common';
 import type { Response } from 'express';
 import { PagoLogService } from './pago-log.service';
 import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
 import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
-import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
+
 
 
 @Controller('pagos')
@@ -14,16 +14,19 @@ export class PagoLogController {
    * EL FRONTEND LLAMA ACÁ PARA OBTENER EL LINK DE PAGO
    * POST /pagos/generar-link
    */
-  @UseGuards(JwtAuthGuard, RolesGuard) 
-  @Roles('Fan') 
   @Post('generar-link')
-  async crearLinkPago(@Body('suscripcion_id') suscripcionId: number) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async crearLinkPago(@Body('suscripcion_id') suscripcionId: number, @Request() req) {
     if (!suscripcionId) {
       throw new BadRequestException('Debes enviar el suscripcion_id');
     }
     
-    return await this.pagoLogService.generarLinkDePago(suscripcionId);
+    const authId = req.user.userId; // Sacamos el ID seguro del Token
+    
+    // Se lo pasamos al Service
+    return await this.pagoLogService.generarLinkDePago(suscripcionId, authId); 
   }
+
   /**
    * WEBHOOK REAL PARA PRODUCCIÓN: Mercado Pago llama a esta ruta
    */
