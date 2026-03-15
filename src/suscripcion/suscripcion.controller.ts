@@ -37,7 +37,7 @@ export class SuscripcionController {
   }
 
   // 4. CONSULTAR MI SUSCRIPCIÓN (Individual - Fan con JWT)
-  @Get('mi-suscripcion')
+  @Get('actual')
   async findOne(@Request() req) {
     const authId = req.user.userId;
     return await this.suscripcionService.findOne(authId);
@@ -47,28 +47,40 @@ export class SuscripcionController {
   // ENDPOINTS EXCLUSIVOS PARA STAFF (Admin y SuperAdmin)
   // =========================================================
 
-  @Get('admin/all')
+  @Get('admin')
   @Roles('SuperAdmin', 'Administrativo')
   async findAll() {
     return await this.suscripcionService.findAll();
   }
 
-  @Get('admin/filter-estado')
+  @Get('admin/estado')
   @Roles('SuperAdmin', 'Administrativo')
   async findByEstado(@Query('estado') estado: string) {
     return await this.suscripcionService.findByEstado(estado);
   }
 
-  @Get('admin/filter-dni')
+  @Get('admin/dni')
   @Roles('SuperAdmin', 'Administrativo')
   async findByDni(@Query('dni') dni: string) {
     return await this.suscripcionService.findByDni(dni);
   }
 
-  @Get('admin/metrictas-membresia')
+  @Get('admin/metricas/membresias')
   @Roles('SuperAdmin', 'Administrativo')
   async getMetrics() {
     return await this.suscripcionService.countByMembresia();
+  }
+
+  @Get('admin/metricas/chicanas')
+  @Roles('SuperAdmin', 'Administrativo')
+  async getMetricasChicanas() {
+    return await this.suscripcionService.countByChicanaFavorita();
+  }
+
+  @Get('admin/metricas/ciudades')
+  @Roles('SuperAdmin', 'Administrativo')
+  async getMetricasCiudades() {
+    return await this.suscripcionService.countByCiudad();
   }
 
   // Activación manual/automática (Simulando Webhook o acción de Staff)
