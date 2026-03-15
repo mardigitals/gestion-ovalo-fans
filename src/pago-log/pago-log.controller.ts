@@ -1,34 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus } from '@nestjs/common';
+import type { Response } from 'express';
 import { PagoLogService } from './pago-log.service';
-import { CreatePagoLogDto } from './dto/create-pago-log.dto';
-import { UpdatePagoLogDto } from './dto/update-pago-log.dto';
 
-@Controller('pago-log')
+@Controller('pagos')
 export class PagoLogController {
   constructor(private readonly pagoLogService: PagoLogService) {}
 
-  @Post()
-  create(@Body() createPagoLogDto: CreatePagoLogDto) {
-    return this.pagoLogService.create(createPagoLogDto);
-  }
+  /**
+   * WEBHOOK REAL PARA PRODUCCIÓN: Mercado Pago llama a esta ruta
+   * POST /pagos/webhook
+   */
+  @Post('webhook')
+  async recibirWebhookMp(@Body() body: any, @Res() res: Response) {
+    // 1. MP exige que le respondamos 200 OK inmediatamente (antes de procesar nada)
+    res.status(HttpStatus.OK).send();
 
-  @Get()
-  findAll() {
-    return this.pagoLogService.findAll();
-  }
+    try {
+      // 2. MP envía la info de diferentes formas según cómo lo configures (IPN o Webhook)
+      const tipoEvento = body.type || body.topic || body.action;
+      const idNotificacion = body.data?.id || body.resource;
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.pagoLogService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePagoLogDto: UpdatePagoLogDto) {
-    return this.pagoLogService.update(+id, updatePagoLogDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.pagoLogService.remove(+id);
+      // 3. Solo nos importa si es un evento relacionado a un "payment" (pago)
+      if ((tipoEvento === 'payment' || tipoEvento === 'payment.created' || tipoEvento === 'payment.updated') && idNotificacion) {
+        
+        console.log(`[Webhook] Aviso de MP recibido. Verificando ID: ${idNotificacion}`);
+        
+        // 4. Le pasamos el ID al Service para que consulte con la API de Mercado Pago
+        await this.pagoLogService.procesarNotificacionPago(idNotificacion);
+      }
+    } catch (error) {
+      console.error('[Webhook Error] Falló el procesamiento del pago:', error.message);
+    }
   }
 }
