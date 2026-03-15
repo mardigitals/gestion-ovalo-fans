@@ -1,26 +1,40 @@
 import { Injectable } from '@nestjs/common';
-import { CreatePagoLogDto } from './dto/create-pago-log.dto';
-import { UpdatePagoLogDto } from './dto/update-pago-log.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PagoLog } from './entities/pago-log.entity';
 
 @Injectable()
 export class PagoLogService {
-  create(createPagoLogDto: CreatePagoLogDto) {
-    return 'This action adds a new pagoLog';
+  constructor(
+    @InjectRepository(PagoLog)
+    private readonly pagoLogRepository: Repository<PagoLog>,
+  ) {}
+
+  /**
+   * 1. REGISTRAR PAGO (Uso interno / Webhook)
+   * Esto se va a llamar automáticamente cuando Mercado Pago nos avise que cobró bien.
+   */
+  async registrarPago(suscripcionId: number, monto: number, metodoPago: string, idTransaccionMp: string) {
+    const nuevoPago = this.pagoLogRepository.create({
+      suscripcion_id: suscripcionId,
+      monto: monto,
+      metodo_pago: metodoPago,
+      id_transaccion_mp: idTransaccionMp,
+    });
+
+    const pagoGuardado = await this.pagoLogRepository.save(nuevoPago);
+    console.log(`[Pagos] Se registró un pago de $${monto} para la suscripción #${suscripcionId}`);
+    
+    return pagoGuardado;
   }
 
-  findAll() {
-    return `This action returns all pagoLog`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} pagoLog`;
-  }
-
-  update(id: number, updatePagoLogDto: UpdatePagoLogDto) {
-    return `This action updates a #${id} pagoLog`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} pagoLog`;
+  /**
+   * 2. HISTORIAL DE PAGOS POR SUSCRIPCIÓN (Para el panel de Admin)
+   */
+  async findBySuscripcion(suscripcionId: number) {
+    return await this.pagoLogRepository.find({
+      where: { suscripcion_id: suscripcionId },
+      order: { fecha_pago: 'DESC' } 
+    });
   }
 }

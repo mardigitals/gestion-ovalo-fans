@@ -9,5 +9,6 @@ import { Membresia } from 'src/membresia/entities/membresia.entity';
   imports: [TypeOrmModule.forFeature([Suscripcion, Membresia])],
   controllers: [SuscripcionController],
   providers: [SuscripcionService],
+  exports: [SuscripcionService]
 })
 export class SuscripcionModule {}
