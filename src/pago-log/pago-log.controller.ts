@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus, BadRequestException } from '@nestjs/common';
 import type { Response } from 'express';
 import { PagoLogService } from './pago-log.service';
 
@@ -7,8 +7,19 @@ export class PagoLogController {
   constructor(private readonly pagoLogService: PagoLogService) {}
 
   /**
+   * EL FRONTEND LLAMA ACÁ PARA OBTENER EL LINK DE PAGO
+   * POST /pagos/generar-link
+   */
+  @Post('generar-link')
+  async crearLinkPago(@Body('suscripcion_id') suscripcionId: number) {
+    if (!suscripcionId) {
+      throw new BadRequestException('Debes enviar el suscripcion_id');
+    }
+    
+    return await this.pagoLogService.generarLinkDePago(suscripcionId);
+  }
+  /**
    * WEBHOOK REAL PARA PRODUCCIÓN: Mercado Pago llama a esta ruta
-   * POST /pagos/webhook
    */
   @Post('webhook')
   async recibirWebhookMp(@Body() body: any, @Res() res: Response) {

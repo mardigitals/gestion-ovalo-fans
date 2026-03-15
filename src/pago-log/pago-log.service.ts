@@ -3,9 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PagoLog } from './entities/pago-log.entity';
 import { SuscripcionService } from 'src/suscripcion/suscripcion.service';
-
-// Importamos el SDK oficial de MP
-import { MercadoPagoConfig, Payment } from 'mercadopago';
+import { MercadoPagoConfig, Payment, Preference} from 'mercadopago';
 
 @Injectable()
 export class PagoLogService {
@@ -90,5 +88,56 @@ export class PagoLogService {
       where: { suscripcion_id: suscripcionId },
       order: { fecha_pago: 'DESC' }
     });
+  }
+
+  /**
+   * GENERAR LINK DE PAGO (Checkout Pro de Mercado Pago)
+   */
+  async generarLinkDePago(suscripcionId: number) {
+    // 1. Buscamos los datos reales en nuestra base de datos para que no nos hackeen el precio
+    const suscripcion = await this.suscripcionService.obtenerPorId(suscripcionId);
+
+    try {
+      const preference = new Preference(this.mpClient);
+
+      // 2. Armamos la orden de cobro
+      const response = await preference.create({
+        body: {
+          items: [
+            {
+              id: suscripcion.membresia.id.toString(),
+              title: `Membresía ${suscripcion.membresia.nombre} - Autódromo Rafaela`,
+              quantity: 1,
+              // Nota: Acá uso el precio_mensual. Si tenés lógica de anual, lo ajustás acá.
+              unit_price: Number(suscripcion.membresia.precio_mensual), 
+              currency_id: 'ARS',
+            }
+          ],
+          // 🚨 LA MAGIA: Le mandamos el ID de la suscripción para que vuelva en el Webhook
+          external_reference: suscripcion.id.toString(), 
+          
+          // 3. ¿A dónde mandamos al fan cuando termina de pagar? (URLs de tu Frontend)
+          back_urls: {
+            success: 'http://localhost:5173/pago/exito', // Cambialo por la URL de tu frontend React
+            failure: 'http://localhost:5173/pago/error',
+            pending: 'http://localhost:5173/pago/pendiente'
+          },
+          auto_return: 'approved',
+        }
+      });
+
+      this.logger.log(`Link generado para suscripción #${suscripcionId} - Preferencia: ${response.id}`);
+
+      // 4. Devolvemos el link mágico
+      return {
+        id_preferencia: response.id,
+        url_pago: response.init_point,         // Para usar en producción
+        url_sandbox: response.sandbox_init_point // Para probar sin plata real
+      };
+
+    } catch (error) {
+      this.logger.error('Error al generar el link de Mercado Pago', error);
+      throw error;
+    }
   }
 }
