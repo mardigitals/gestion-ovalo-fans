@@ -220,4 +220,17 @@ export class SuscripcionService {
       .orderBy('cantidad', 'DESC')
       .getRawMany();
   }
+
+  async obtenerPorId(id: number) {
+    const suscripcion = await this.suscripcionRepository.findOne({
+      where: { id },
+      relations: ['membresia']
+    });
+    
+    if (!suscripcion) {
+      throw new NotFoundException(`No se encontró la suscripción con ID ${id}`);
+    }
+    
+    return suscripcion;
+  }
 }
