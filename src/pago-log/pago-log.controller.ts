@@ -1,6 +1,10 @@
-import { Controller, Post, Body, Res, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus, BadRequestException, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { PagoLogService } from './pago-log.service';
+import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
+import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
+import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
+
 
 @Controller('pagos')
 export class PagoLogController {
@@ -10,6 +14,8 @@ export class PagoLogController {
    * EL FRONTEND LLAMA ACÁ PARA OBTENER EL LINK DE PAGO
    * POST /pagos/generar-link
    */
+  @UseGuards(JwtAuthGuard, RolesGuard) 
+  @Roles('Fan') 
   @Post('generar-link')
   async crearLinkPago(@Body('suscripcion_id') suscripcionId: number) {
     if (!suscripcionId) {
