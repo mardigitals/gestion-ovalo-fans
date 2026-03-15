@@ -65,7 +65,12 @@ export class SuscripcionService {
     const ahora = new Date();
     const fechaFin = new Date();
 
-    // Lógica automática de fechas según el nombre de la membresía
+    if (!['Pendiente', 'Vencido'].includes(suscripcion.estado)) {
+      throw new BadRequestException(
+        `No se puede activar. La suscripción actual está en estado: ${suscripcion.estado}.`
+      );
+    }
+    
     if (suscripcion.membresia.nombre.toLowerCase().includes('anual')) {
       fechaFin.setFullYear(ahora.getFullYear() + 1);
     } else {
@@ -171,7 +176,7 @@ export class SuscripcionService {
   }
 
   async findByDni(dni: string) {
-    return await this.suscripcionRepository.find({
+    const resultado = await this.suscripcionRepository.find({
       // Relación profunda: Buscamos en el PerfilFan -> Usuario -> DNI
       where: { 
         perfilFan: { 
@@ -179,7 +184,9 @@ export class SuscripcionService {
         } 
       },
       relations: ['perfilFan', 'perfilFan.usuario', 'membresia']
-    });
+    })
+    if (resultado.length === 0) throw new NotFoundException(`No hay suscripciones para el DNI ${dni}`);
+    return resultado;
   }
 
   async countByMembresia() {
@@ -189,6 +196,28 @@ export class SuscripcionService {
       .addSelect('COUNT(suscripcion.id)', 'cantidad')
       .innerJoin('suscripcion.membresia', 'membresia')
       .groupBy('membresia.id')
+      .getRawMany();
+  }
+
+  async countByChicanaFavorita() {
+    return await this.suscripcionRepository.manager
+      .getRepository('PerfilFan')
+      .createQueryBuilder('perfil')
+      .select('perfil.chicana_favorita', 'chicana')
+      .addSelect('COUNT(perfil.id)', 'cantidad')
+      .groupBy('perfil.chicana_favorita')
+      .getRawMany();
+  }
+
+  async countByCiudad() {
+    return await this.suscripcionRepository.manager
+      .getRepository('PerfilFan') // 👈 Arrancamos desde el Perfil
+      .createQueryBuilder('perfil')
+      .innerJoin('perfil.usuario', 'usuario') 
+      .select('usuario.ciudad', 'ciudad')
+      .addSelect('COUNT(perfil.id)', 'cantidad')
+      .groupBy('usuario.ciudad')
+      .orderBy('cantidad', 'DESC')
       .getRawMany();
   }
 }
