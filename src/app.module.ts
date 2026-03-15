@@ -12,6 +12,7 @@ import { ContenidoMultimediaModule } from './contenido-multimedia/contenido-mult
 import { MembresiaModule } from './membresia/membresia.module';
 import { SuscripcionModule } from './suscripcion/suscripcion.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { PagoLogModule } from './pago-log/pago-log.module';
 
 @Module({
   imports: [
@@ -49,6 +50,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     MembresiaModule,
     
     SuscripcionModule,
+    
+    PagoLogModule,
   ],
   controllers: [AppController],
   providers: [AppService],
