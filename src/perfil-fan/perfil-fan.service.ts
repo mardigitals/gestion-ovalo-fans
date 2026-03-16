@@ -57,8 +57,7 @@ export class PerfilFanService {
     const esStaff = ['SuperAdmin', 'Administrativo'].includes(rolSolicitante);
     
     
-    const esDueño = Number(perfil.usuario_id) === Number(usuarioIdSolicitante);
-
+    const esDueño = Number(perfil.usuario.usuario_auth_id) === Number(usuarioIdSolicitante);
 
     if (!esStaff && !esDueño) {
       throw new ForbiddenException('No tenés permiso para ver este perfil ajeno.');
