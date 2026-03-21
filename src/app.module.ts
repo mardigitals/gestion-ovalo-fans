@@ -13,6 +13,7 @@ import { MembresiaModule } from './membresia/membresia.module';
 import { SuscripcionModule } from './suscripcion/suscripcion.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PagoLogModule } from './pago-log/pago-log.module';
+import { UsoBeneficioModule } from './uso-beneficio/uso-beneficio.module';
 
 @Module({
   imports: [
@@ -52,6 +53,8 @@ import { PagoLogModule } from './pago-log/pago-log.module';
     SuscripcionModule,
     
     PagoLogModule,
+    
+    UsoBeneficioModule,
   ],
   controllers: [AppController],
   providers: [AppService],
