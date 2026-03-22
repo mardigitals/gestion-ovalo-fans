@@ -15,10 +15,10 @@ export class UsoBeneficioService {
     private readonly suscripcionRepository: Repository<Suscripcion>,
   ) {}
  
-  async registrarUso(dto: CreateUsoBeneficioDto, usuarioAuthId: number) {
+  async registrarUso(dto: CreateUsoBeneficioDto, usuarioId: number) {
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { 
-        perfilFan: { usuario: { usuario_auth_id: usuarioAuthId } } 
+        perfilFan: { usuario_id: usuarioId } 
       },
       relations: ['membresia', 'pagos', 'perfilFan', 'perfilFan.usuario'] 
     });

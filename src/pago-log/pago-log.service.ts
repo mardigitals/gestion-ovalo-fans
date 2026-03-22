@@ -92,13 +92,13 @@ export class PagoLogService {
   /**
    * GENERAR LINK DE PAGO (Checkout Pro de Mercado Pago)
    */
-  async generarLinkDePago(suscripcionId: number, authId: number) { 
+  async generarLinkDePago(suscripcionId: number, usuarioId: number) { 
     // 1. Buscamos los datos reales
     const suscripcion = await this.suscripcionService.obtenerPorId(suscripcionId);
 
     //  2. EL BLINDAJE ANTI-HACKERS 
-    if (suscripcion.perfilFan.usuario.usuario_auth_id !== authId) {
-      this.logger.warn(`Intento de fraude: Usuario ${authId} intentó pagar suscripción ${suscripcionId}`);
+    if (suscripcion.perfilFan.usuario_id !== usuarioId) {
+      this.logger.warn(`Intento de fraude: Usuario ${usuarioId} intentó pagar suscripción ${suscripcionId}`);
       throw new ForbiddenException('No tienes permiso para gestionar esta suscripción.');
     }
 
