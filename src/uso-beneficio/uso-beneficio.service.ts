@@ -20,7 +20,7 @@ export class UsoBeneficioService {
       where: { 
         perfilFan: { usuario_id: usuarioId } 
       },
-      relations: ['membresia', 'perfilFan', 'perfilFan.usuario'] 
+      relations: ['membresia', 'pagoLogs', 'perfilFan', 'perfilFan.usuario'] 
     });
 
     if (!suscripcion) throw new NotFoundException('No tenés una suscripción vinculada.');
