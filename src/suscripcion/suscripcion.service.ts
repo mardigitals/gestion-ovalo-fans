@@ -20,10 +20,10 @@ export class SuscripcionService {
    * 1. INICIAR SUSCRIPCIÓN (Estado: Pendiente)
    * Se dispara cuando el fan elige un plan en el frontend.
    */
-  async crearIntencion(dto: CreateSuscripcionDto, authId: number) {
+  async crearIntencion(dto: CreateSuscripcionDto, usuarioId: number) {
     // 1. Buscamos el perfil fan asociado al usuario logueado (el ID 8 del debugger)
     const perfil = await this.suscripcionRepository.manager.getRepository('PerfilFan').findOne({
-      where: { usuario: { usuario_auth_id: authId } }
+      where: { usuario_id:  usuarioId }
     });
 
     if (!perfil) {
@@ -89,12 +89,12 @@ export class SuscripcionService {
    * 3. VALIDACIÓN DE ACCESO (Incluye 72hs de Gracia)
    * Verifica si el fan puede entrar al contenido exclusivo.
    */
-  async validarAccesoFan(authId: number): Promise<boolean> {
+  async validarAccesoFan(usuarioId: number): Promise<boolean> {
     // Buscamos la suscripción activa usando el ID de Auth (el 8 que ves en el debugger)
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { 
         // busca el perfil que pertenece a ese usuario logueado
-        perfilFan: { usuario: { usuario_auth_id: authId } },
+        perfilFan: { usuario_id: usuarioId },
         estado: 'Activo' 
       },
       order: { fecha_fin: 'DESC' }
@@ -133,11 +133,11 @@ export class SuscripcionService {
   /**
    * 5. CANCELACIÓN VOLUNTARIA
    */
-  async cancelar(id: number, authId: number) {
+  async cancelar(id: number, usuarioId: number) {
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { 
       id: id,
-      perfilFan: { usuario: { usuario_auth_id: authId } } 
+      perfilFan: { usuario_id: usuarioId } 
       }
    });
     
@@ -151,10 +151,10 @@ export class SuscripcionService {
     return await this.suscripcionRepository.find({ relations: ['perfilFan', 'membresia'] });
   }
 
-  async findOne(authId: number) {
+  async findOne(usuarioId: number) {
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { 
-        perfilFan: { usuario: { usuario_auth_id: authId } },
+        perfilFan: { usuario_id: usuarioId },
         estado: 'Activo' // Siempre traemos la que está vigente
       },
       order: { id: 'DESC' }, // La más nueva por si acaso
