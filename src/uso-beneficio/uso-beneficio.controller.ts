@@ -1,34 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { UsoBeneficioService } from './uso-beneficio.service';
 import { CreateUsoBeneficioDto } from './dto/create-uso-beneficio.dto';
-import { UpdateUsoBeneficioDto } from './dto/update-uso-beneficio.dto';
+import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
+import { UseGuards } from '@nestjs/common';
+import { Req } from '@nestjs/common';
 
 @Controller('uso-beneficio')
 export class UsoBeneficioController {
   constructor(private readonly usoBeneficioService: UsoBeneficioService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() createUsoBeneficioDto: CreateUsoBeneficioDto) {
-    return this.usoBeneficioService.create(createUsoBeneficioDto);
+  async registrar(@Body() createDto: CreateUsoBeneficioDto, @Req() req: any) {
+    // Extraemos el ID del usuario del Token (inyectado por Passport en req.user)
+    const usuarioAuthId = req.user.userId; 
+    
+    return await this.usoBeneficioService.registrarUso(createDto, usuarioAuthId);
   }
 
-  @Get()
-  findAll() {
-    return this.usoBeneficioService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usoBeneficioService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUsoBeneficioDto: UpdateUsoBeneficioDto) {
-    return this.usoBeneficioService.update(+id, updateUsoBeneficioDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usoBeneficioService.remove(+id);
-  }
+  /**
+   * NOTA: Más adelante agregaremos aquí los métodos para el Staff:
+   * - GET /uso-beneficio (Listar solicitudes para gestión)
+   * - PATCH /uso-beneficio/:id (Aprobar/Rechazar)
+   */
 }
