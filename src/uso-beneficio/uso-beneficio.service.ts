@@ -22,7 +22,7 @@ export class UsoBeneficioService {
       },
       relations: ['membresia', 'pagoLogs', 'perfilFan', 'perfilFan.usuario'] 
     });
-
+    console.log('Suscripción encontrada:', suscripcion);
     if (!suscripcion) throw new NotFoundException('No tenés una suscripción vinculada.');
 
     // 2, 3 y 4: Validaciones (Estado, Jerarquía y Reglas Pro)
@@ -73,7 +73,7 @@ export class UsoBeneficioService {
     if (dto.tipo_beneficio === 'VIP_BOXES') {
       const inicio = new Date(suscripcion.fecha_inicio);
       const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
-      const cantPagos = suscripcion.pagos ? suscripcion.pagos.length : 0;
+      const cantPagos = suscripcion.pagoLogs ? suscripcion.pagoLogs.length : 0;
 
       if (mesesAntiguedad < 6 || cantPagos < 6) {
         throw new BadRequestException(`Requerís 6 meses de antigüedad y 6 pagos. Tenés ${mesesAntiguedad} meses y ${cantPagos} pagos.`);
