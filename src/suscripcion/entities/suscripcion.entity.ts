@@ -1,7 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, DeleteDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, DeleteDateColumn, OneToMany } from 'typeorm';
 import { PerfilFan } from 'src/perfil-fan/entities/perfil-fan.entity';
 import { Membresia } from 'src/membresia/entities/membresia.entity';
 import { PerfilStaff } from 'src/perfil-staff/entities/perfil-staff.entity';
+import { PagoLog } from 'src/pago-log/entities/pago-log.entity';
+import { UsoBeneficio } from 'src/uso-beneficio/entities/uso-beneficio.entity';
 
 @Entity('suscripcion')
 export class Suscripcion {
@@ -42,5 +44,9 @@ export class Suscripcion {
   @JoinColumn({ name: 'staff_id_control' })
   staffControl: PerfilStaff;
 
-  //relaciones a pago_log y uso_beneficio 
+ @OneToMany(() => PagoLog, (pagoLog) => pagoLog.suscripcion)
+  pagoLogs: PagoLog[];
+
+  @OneToMany(() => UsoBeneficio, (usoBeneficio) => usoBeneficio.suscripcion)
+  usosBeneficios: UsoBeneficio[];
 }
