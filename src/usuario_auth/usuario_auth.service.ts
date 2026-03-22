@@ -89,7 +89,8 @@ export class UsuarioAuthService {
       const payload = { 
         sub: usuario.id, 
         email: usuario.email, 
-        rol: nombreRol 
+        rol: nombreRol, 
+        userId: usuarioConRol?.id
     };
 
       // 6. Devolvemos el token (El usuario se lo lleva, vos guardaste la fecha en SQL)
