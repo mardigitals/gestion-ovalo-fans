@@ -31,21 +31,31 @@ export class UsoBeneficioService {
     await this.aplicarReglasPro(suscripcion, dto);
 
     // 5. DETERMINAR ESTADO Y GUARDAR
-    const estadoInicial = dto.categoria_beneficio === 'Instantáneo QR' ? 'Completado' : 'Pendiente';
+    let estadoInicial = 'Pendiente'; // Ya lo inicializamos por las dudas
 
-    // PRIMERO GUARDAMOS: Capturamos el objeto ya grabado (con su ID y fecha real)
+    switch (dto.categoria_beneficio) {
+      case 'Instantáneo QR':
+      case 'Automático':
+        estadoInicial = 'Completado'; 
+        break;
+      case 'Solicitado':
+        estadoInicial = 'Pendiente'; 
+        break;
+    }
+
+    // PRIMERO GUARDAMOS
     const usoGrabado = await this.usoBeneficioRepository.save({
       ...dto,
       suscripcion_id: suscripcion.id,
       estado: estadoInicial,
       fecha_solicitud: new Date(),
+      fecha_uso: estadoInicial === 'Completado' ? new Date() : undefined,
     });
 
-    // SEGUNDO NOTIFICAMOS: Solo si el guardado fue exitoso
-    // Ahora usoGrabado.id ya tiene valor
+    // SEGUNDO NOTIFICAMOS
     this.dispararNotificaciones(usoGrabado, suscripcion); 
 
-    return usoGrabado; 
+    return usoGrabado;
   }
 
   //Patron Strategy? Para validar jerarquías de beneficios según el plan
