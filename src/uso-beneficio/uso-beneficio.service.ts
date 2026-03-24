@@ -48,6 +48,7 @@ export class UsoBeneficioService {
     return usoGrabado; 
   }
 
+  //Patron Strategy? Para validar jerarquías de beneficios según el plan
   private validarJerarquia(nivel: number, tipo: string) {
     const beneficiosP1 = ['VIP_BOXES', 'SALA_PRENSA', 'PLACA_RECTA', 'PACECAR_RESCATE'];
     const beneficiosP2 = ['FAST_ACCESS', 'VISITAS_GUIADAS', 'REGALO_SUPERFAN', 'MULTIMEDIA_VIP'];
@@ -264,6 +265,7 @@ export class UsoBeneficioService {
     }
   }
 
+  //Patron Observer? Para cada beneficio que requiera acción
   private async dispararNotificaciones(uso: UsoBeneficio, suscripcion: any) {
     const nombreFan = `${suscripcion.perfilFan.usuario.nombre} ${suscripcion.perfilFan.usuario.apellido}`;
 
