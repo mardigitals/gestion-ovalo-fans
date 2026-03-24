@@ -119,26 +119,31 @@ export class UsoBeneficioService {
       if (usosAnio >= 1) throw new BadRequestException('El uso de Sala de Prensa es 1 vez por año.');
     }
 
-    // --- REGLA P1: NOMBRE EN PLACA (Al cumplir 1 año real, Única vez) ---
+    // --- REGLA P1: NOMBRE EN PLACA (Al cumplir 1 año real y 12 pagos, Única vez) ---
     if (dto.tipo_beneficio === 'PLACA_RECTA') {
       const inicio = new Date(suscripcion.fecha_inicio);
-      // Usamos el cálculo de meses que es más preciso
       const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
       
-      // 12 meses = 1 año real
-      if (mesesAntiguedad < 12) {
-        throw new BadRequestException('El grabado en placa requiere 12 meses de antigüedad cumplidos.');
+      // 1. Contamos los pagos usando la relación que arreglamos antes
+      const cantPagos = suscripcion.pagoLogs ? suscripcion.pagoLogs.length : 0;
+      
+      // 2. Candado doble: 12 meses Y 12 pagos
+      if (mesesAntiguedad < 12 || cantPagos < 12) {
+        throw new BadRequestException(`El grabado en placa requiere 12 meses de antigüedad y 12 cuotas pagas. Tenés ${mesesAntiguedad} meses y ${cantPagos} pagos.`);
       }
 
+      // 3. Verificamos que no la haya pedido nunca en la vida (Opción A)
       const yaTienePlaca = await this.usoBeneficioRepository.count({
         where: { 
             suscripcion_id: suscripcion.id, 
             tipo_beneficio: 'PLACA_RECTA',
-            estado: Not('Rechazado') // Importante por si hubo error en el envío anterior
+            estado: Not('Rechazado') 
         }
       });
 
-      if (yaTienePlaca > 0) throw new BadRequestException('Tu nombre ya fue enviado a grabado de placa. Solo puedes solicitar una vez al año.');
+      if (yaTienePlaca > 0) {
+        throw new BadRequestException('Tu nombre ya fue enviado a grabado de placa. Este beneficio es por única vez.');
+      }
     }
 
     // --- REGLA P1: RESCATE DE PACE CAR 1 vez al año---
