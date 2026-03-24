@@ -163,6 +163,8 @@ export class UsoBeneficioService {
       if (usosAnio >= 1) throw new BadRequestException('El beneficio de Pace Car es 1 vez por año.');
     }
 
+    //reglas p2 a validar =============>>>>>>
+
     // --- REGLA P2: FAST ACCESS (1 vez solo para el TC) ---
       //generar qr en el front para mostrar en fast access predio, con validacion de p2 o p1 y validación de compra de entrada para ese evento. El qr se genera al instante
     if (dto.tipo_beneficio === 'FAST_ACCESS') {
