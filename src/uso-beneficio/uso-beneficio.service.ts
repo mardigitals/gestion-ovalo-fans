@@ -138,7 +138,7 @@ export class UsoBeneficioService {
         }
       });
 
-      if (yaTienePlaca > 0) throw new BadRequestException('Tu nombre ya fue enviado a grabado de placa.');
+      if (yaTienePlaca > 0) throw new BadRequestException('Tu nombre ya fue enviado a grabado de placa. Solo puedes solicitar una vez al año.');
     }
 
     // --- REGLA P1: RESCATE DE PACE CAR 1 vez al año---
