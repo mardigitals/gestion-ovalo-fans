@@ -4,9 +4,11 @@ import { UsoBeneficioController } from './uso-beneficio.controller';
 import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';  
 import { UsoBeneficio } from './entities/uso-beneficio.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Evento } from 'src/evento/entities/evento.entity';
+
 
 @Module({
-  imports: [TypeOrmModule.forFeature([UsoBeneficio, Suscripcion])],
+  imports: [TypeOrmModule.forFeature([UsoBeneficio, Suscripcion, Evento])],
   controllers: [UsoBeneficioController],
   providers: [UsoBeneficioService],
 })
