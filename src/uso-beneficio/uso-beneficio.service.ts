@@ -1,6 +1,6 @@
 import { Injectable, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { CreateUsoBeneficioDto } from './dto/create-uso-beneficio.dto';
-import { Repository, Between, Not } from 'typeorm';
+import { Repository, Between, Not, In } from 'typeorm';
 import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
 import { UsoBeneficio } from './entities/uso-beneficio.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -166,21 +166,44 @@ export class UsoBeneficioService {
     //reglas p2 a validar =============>>>>>>
 
     // --- REGLA P2: FAST ACCESS (1 vez solo para el TC) ---
-      //generar qr en el front para mostrar en fast access predio, con validacion de p2 o p1 y validación de compra de entrada para ese evento. El qr se genera al instante
-    if (dto.tipo_beneficio === 'FAST_ACCESS') {
-      if (!dto.evento_id) throw new BadRequestException('Debe indicar el evento para el Fast Access.');
+    //generar qr en el front para mostrar fast access predio, con validacion de p2 o p1. evento tiene que ser TC. El qr se genera al instante
+    // // TODO: Descomentar y probar FAST_ACCESS cuando esté creado el EventoModule-
 
-      const yaTieneAcceso = await this.usoBeneficioRepository.count({
-        where: {
-          suscripcion_id: suscripcion.id,
-          tipo_beneficio: 'FAST_ACCESS',
-          evento_id: dto.evento_id,
-          estado: Not('Rechazado')
-        }
-      });
+    // if (dto.tipo_beneficio === 'FAST_ACCESS') {
+      
+    //   if (!dto.evento_id) {
+    //     throw new BadRequestException('Para generar el QR de Fast Access debés seleccionar el evento.');
+    //   }
 
-      if (yaTieneAcceso > 0) throw new BadRequestException('Ya solicitaste Fast Access para este evento.');
-    }
+    //   const evento = await this.eventoRepository.findOne({
+    //     where: { id: dto.evento_id } 
+    //   });
+
+    //   if (!evento) throw new NotFoundException('El evento seleccionado no existe.');
+
+    //   if (evento.tipo_evento !== 'Carrera' || evento.categoria_carrera !== 'TC') {
+    //     throw new ForbiddenException('El Fast Access es exclusivo para las fechas de la categoría Turismo Carretera (TC).');
+    //   }
+
+    //   const hoy = new Date();
+    //   if (evento.fecha_evento.getFullYear() !== hoy.getFullYear()) {
+    //      throw new ForbiddenException('Solo podés generar accesos para eventos del año en curso.');
+    //   }
+
+
+    //   const yaTieneAcceso = await this.usoBeneficioRepository.count({
+    //     where: {
+    //       suscripcion_id: suscripcion.id,
+    //       tipo_beneficio: 'FAST_ACCESS',
+    //       evento_id: dto.evento_id,
+    //       estado: Not('Rechazado')
+    //     }
+    //   });
+
+    //   if (yaTieneAcceso > 0) {
+    //     throw new BadRequestException('Ya tenés un código QR generado para este evento.');
+    //   }
+    // }
 
     // ---  REGLA P2: REGALO SUPERFAN (1 vez al año) ---
         //debe ser automatico, no necesita validación de staff, pero sí validación de cupo anual al cumplir 1 año de suscripción. Si ya cumplió 1 año, se envia mensaje a staff para que gestione el regalo. El beneficio queda registrado como "Completado" porque no depende de aprobación, pero el staff se encarga de marcarlo como "Entregado" o "Rechazado" según corresponda.
