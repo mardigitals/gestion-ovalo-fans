@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
- import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
-// import { Evento } from '../evento/entities/evento.entity'; 
+import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
+import { Evento } from 'src/evento/entities/evento.entity'; 
 // import { Comercio } from '../comercio/entities/comercio.entity'; 
 
 @Entity('uso_beneficio')
@@ -44,9 +44,9 @@ export class UsoBeneficio {
   suscripcion: Suscripcion;
 
 
-//   @ManyToOne(() => Evento, (evento) => evento.usosBeneficios)
-//   @JoinColumn({ name: 'evento_id' })
-//   evento: Evento;
+  @ManyToOne(() => Evento, (evento) => evento.usoBeneficios)
+  @JoinColumn({ name: 'evento_id' })
+  evento: Evento;
 
   // @ManyToOne(() => Comercio)
   // @JoinColumn({ name: 'comercio_id' })

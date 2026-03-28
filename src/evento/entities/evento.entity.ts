@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { UsoBeneficio } from 'src/uso-beneficio/entities/uso-beneficio.entity';
+import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
 @Entity('evento')
 export class Evento {
@@ -19,5 +20,10 @@ export class Evento {
 
     @Column ({type: 'enum', enum: ['TC', 'TURISMO PISTA', 'TC PICK UP', 'TC MOURAS', 'TC 2000', 'TURISMO NACIONAL', 'CARSHOW SANTAFESINO', 'TZ SANTAFESINO','CORDOBA PISTA', 'KARTING', 'PICADAS', 'Otros'], default: 'Otros', nullable: true})
     categoria_carrera: string;
+
+  // Relación inversa: Un perfil puede tener  muchos contenidos
+  @OneToMany(() => UsoBeneficio, (usoBeneficio) => usoBeneficio.evento)
+  usoBeneficios: UsoBeneficio[];
+
 
 }
