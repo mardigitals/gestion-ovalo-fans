@@ -34,16 +34,26 @@ export class UsoBeneficioService {
     await this.aplicarReglasPro(suscripcion, dto);
 
     // 5. DETERMINAR ESTADO Y GUARDAR
-    let estadoInicial = 'Pendiente'; // Ya lo inicializamos por las dudas
+    let estadoInicial = 'Pendiente'; 
+    let categoriaBeneficioInicial = 'Solicitado'; 
 
-    switch (dto.categoria_beneficio) {
-      case 'Instantáneo QR':
-      case 'Automático':
+    switch (dto.tipo_beneficio) {
+      case 'FAST_ACCESS':
+      case 'VIP_BOXES':
+      case 'DESC_PRUEBAS':
+      case 'DESC_RECITALES':
+      case 'DESC_CARRERAS':
+        estadoInicial = 'Completado';
+        categoriaBeneficioInicial = 'Instantáneo QR';
+        break;
+      case 'MULTIMEDIA_VIP': 
         estadoInicial = 'Completado'; 
+        categoriaBeneficioInicial = 'Automático';
         break;
-      case 'Solicitado':
-        estadoInicial = 'Pendiente'; 
-        break;
+
+      // PLACA, REGALO, PACECAR, SALA_PRENSA y VISITAS_GUIADAS
+      // Caen en el por defecto (Pendiente / Solicitado)
+      //DESC_COMERCIO no usa endpoint de uso, es un descuento que el comercio aplica directamente al validar la suscripción del fan en findSuscripcionbyDni, así que tampoco va a caer acá.
     }
 
     // PRIMERO GUARDAMOS
@@ -51,6 +61,7 @@ export class UsoBeneficioService {
       ...dto,
       suscripcion_id: suscripcion.id,
       estado: estadoInicial,
+      categoria_beneficio: categoriaBeneficioInicial,
       fecha_solicitud: new Date(),
       fecha_uso: estadoInicial === 'Completado' ? new Date() : undefined,
     });
@@ -83,7 +94,7 @@ export class UsoBeneficioService {
   private async aplicarReglasPro(suscripcion: any, dto: CreateUsoBeneficioDto) {
     const hoy = new Date();
 
-    // --- REGLA P1: VIP BOXES (6 meses + 6 pagos) ---
+    // --- REGLA P1: VIP BOXES (6 meses + 6 pagos y evento TC) ---
     if (dto.tipo_beneficio === 'VIP_BOXES') {
       const inicio = new Date(suscripcion.fecha_inicio);
       const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
@@ -91,6 +102,24 @@ export class UsoBeneficioService {
 
       if (mesesAntiguedad < 6 || cantPagos < 6) {
         throw new BadRequestException(`Requerís 6 meses de antigüedad y 6 pagos. Tenés ${mesesAntiguedad} meses y ${cantPagos} pagos.`);
+      }
+
+      if (!dto.evento_id) {
+        throw new BadRequestException('Para solicitar VIP Boxes debés seleccionar el evento.');
+      }
+
+      const evento = await this.eventoRepository.findOne({
+        where: { id: dto.evento_id } 
+      });
+
+      if (!evento) throw new NotFoundException('El evento seleccionado no existe.');
+
+      if (evento.tipo_evento !== 'Carrera' || evento.categoria_carrera !== 'TC') {
+        throw new ForbiddenException('Los VIP Boxes son exclusivos para las fechas de la categoría Turismo Carretera (TC).');
+      }
+
+      if (evento.fecha_evento.getFullYear() !== hoy.getFullYear()) {
+         throw new ForbiddenException('Solo podés generar accesos para eventos del año en curso.');
       }
 
       const yaUsoVip = await this.usoBeneficioRepository.count({
@@ -166,11 +195,8 @@ export class UsoBeneficioService {
       if (usosAnio >= 1) throw new BadRequestException('El beneficio de Pace Car es 1 vez por año.');
     }
 
-    //reglas p2 a validar =============>>>>>>
-
     // --- REGLA P2: FAST ACCESS (1 vez solo para el TC) ---
     //generar qr en el front para mostrar fast access predio, con validacion de p2 o p1. evento tiene que ser TC. El qr se genera al instante
-    // TODO: Descomentar y probar FAST_ACCESS cuando esté creado el EventoModule-
 
     if (dto.tipo_beneficio === 'FAST_ACCESS') {
       
@@ -207,9 +233,9 @@ export class UsoBeneficioService {
         throw new BadRequestException('Ya tenés un código QR generado para este evento.');
       }
     }
-
+ //reglas p2 a validar =============>>>>>>
     // ---  REGLA P2: REGALO SUPERFAN (1 vez al año) ---
-        //debe ser automatico, no necesita validación de staff, pero sí validación de cupo anual al cumplir 1 año de suscripción. Si ya cumplió 1 año, se envia mensaje a staff para que gestione el regalo. El beneficio queda registrado como "Completado" porque no depende de aprobación, pero el staff se encarga de marcarlo como "Entregado" o "Rechazado" según corresponda.
+
     if (dto.tipo_beneficio === 'REGALO_SUPERFAN') {
       const inicio = new Date(suscripcion.fecha_inicio);
       const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
