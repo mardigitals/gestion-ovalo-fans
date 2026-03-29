@@ -94,14 +94,14 @@ export class UsoBeneficioService {
   private async aplicarReglasPro(suscripcion: any, dto: CreateUsoBeneficioDto) {
     const hoy = new Date();
 
-    // --- REGLA P1: VIP BOXES (6 meses + 6 pagos y evento TC) ---
+    // --- REGLA P1: VIP BOXES (12 meses + 12 pagos y evento TC) ---
     if (dto.tipo_beneficio === 'VIP_BOXES') {
       const inicio = new Date(suscripcion.fecha_inicio);
       const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
-      const cantPagos = suscripcion.pagoLogs ? suscripcion.pagoLogs.length : 0;
+      const cantPagos = this.contarPagosRecientes(suscripcion.pagoLogs, 12);
 
-      if (mesesAntiguedad < 6 || cantPagos < 6) {
-        throw new BadRequestException(`Requerís 6 meses de antigüedad y 6 pagos. Tenés ${mesesAntiguedad} meses y ${cantPagos} pagos.`);
+      if (mesesAntiguedad < 12 || cantPagos < 12) {
+        throw new BadRequestException(`Requerís 12 meses de antigüedad y 12 pagos en el último año. Tenés ${mesesAntiguedad} meses y ${cantPagos} pagos recientes.`);
       }
 
       if (!dto.evento_id) {
@@ -137,6 +137,14 @@ export class UsoBeneficioService {
 
     // --- REGLA P1: SALA DE PRENSA (1 vez al año) ---
     if (dto.tipo_beneficio === 'SALA_PRENSA') {
+      const inicio = new Date(suscripcion.fecha_inicio);
+      const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
+      const cantPagos = this.contarPagosRecientes(suscripcion.pagoLogs, 12);
+
+      if (mesesAntiguedad < 12 || cantPagos < 12) {
+        throw new BadRequestException(`Requerís 12 meses de antigüedad ininterrumpida. En los últimos 12 meses registramos ${cantPagos} pagos.`);
+      }
+
       const primerDiaAnio = new Date(hoy.getFullYear(), 0, 1);
       const ultimoDiaAnio = new Date(hoy.getFullYear(), 11, 31);
 
@@ -155,16 +163,13 @@ export class UsoBeneficioService {
     if (dto.tipo_beneficio === 'PLACA_RECTA') {
       const inicio = new Date(suscripcion.fecha_inicio);
       const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
-      
-      // 1. Contamos los pagos usando la relación que arreglamos antes
-      const cantPagos = suscripcion.pagoLogs ? suscripcion.pagoLogs.length : 0;
-      
-      // 2. Candado doble: 12 meses Y 12 pagos
+      const cantPagos = this.contarPagosRecientes(suscripcion.pagoLogs, 12);
+
       if (mesesAntiguedad < 12 || cantPagos < 12) {
-        throw new BadRequestException(`El grabado en placa requiere 12 meses de antigüedad y 12 cuotas pagas. Tenés ${mesesAntiguedad} meses y ${cantPagos} pagos.`);
+        throw new BadRequestException(`Requerís 12 meses de antigüedad ininterrumpida. En los últimos 12 meses registramos ${cantPagos} pagos.`);
       }
 
-      // 3. Verificamos que no la haya pedido nunca en la vida (Opción A)
+      // 3. Verificamos que no la haya pedido nunca en la vida
       const yaTienePlaca = await this.usoBeneficioRepository.count({
         where: { 
             suscripcion_id: suscripcion.id, 
@@ -199,6 +204,16 @@ export class UsoBeneficioService {
     //generar qr en el front para mostrar fast access predio, con validacion de p2 o p1. evento tiene que ser TC. El qr se genera al instante
 
     if (dto.tipo_beneficio === 'FAST_ACCESS') {
+
+      const inicio = new Date(suscripcion.fecha_inicio);
+      const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
+      
+      
+      const cantPagos = this.contarPagosRecientes(suscripcion.pagoLogs, 2);
+
+      if (mesesAntiguedad < 2 || cantPagos < 2) {
+        throw new BadRequestException(`Requerís 2 meses de antigüedad ininterrumpida. En los últimos 2 meses registramos ${cantPagos} pagos.`);
+      }
       
       if (!dto.evento_id) {
         throw new BadRequestException('Para generar el QR de Fast Access debés seleccionar el evento.');
@@ -214,11 +229,9 @@ export class UsoBeneficioService {
         throw new ForbiddenException('El Fast Access es exclusivo para las fechas de la categoría Turismo Carretera (TC).');
       }
 
-      const hoy = new Date();
       if (evento.fecha_evento.getFullYear() !== hoy.getFullYear()) {
          throw new ForbiddenException('Solo podés generar accesos para eventos del año en curso.');
       }
-
 
       const yaTieneAcceso = await this.usoBeneficioRepository.count({
         where: {
@@ -233,15 +246,16 @@ export class UsoBeneficioService {
         throw new BadRequestException('Ya tenés un código QR generado para este evento.');
       }
     }
- //reglas p2 a validar =============>>>>>>
+ 
     // ---  REGLA P2: REGALO SUPERFAN (1 vez al año) ---
 
     if (dto.tipo_beneficio === 'REGALO_SUPERFAN') {
       const inicio = new Date(suscripcion.fecha_inicio);
       const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
+      const cantPagos = this.contarPagosRecientes(suscripcion.pagoLogs, 12);
 
-      if (mesesAntiguedad < 12) {
-        throw new BadRequestException('El regalo Superfan requiere 12 meses de antigüedad.');
+      if (mesesAntiguedad < 12 || cantPagos < 12) {
+        throw new BadRequestException(`Requerís 12 meses de antigüedad ininterrumpida. En los últimos 12 meses registramos ${cantPagos} pagos.`);
       }
 
       const primerDiaAnio = new Date(hoy.getFullYear(), 0, 1);
@@ -277,6 +291,14 @@ export class UsoBeneficioService {
 
       // --- REGLA P3: CUPO PRUEBAS LIBRES (3 al mes) ---
     if (dto.tipo_beneficio === 'DESC_PRUEBAS') {
+      const inicio = new Date(suscripcion.fecha_inicio);
+      const mesesAntiguedad = (hoy.getFullYear() - inicio.getFullYear()) * 12 + (hoy.getMonth() - inicio.getMonth());
+      const cantPagos = this.contarPagosRecientes(suscripcion.pagoLogs, 1);
+
+      if (mesesAntiguedad < 1 || cantPagos < 1) {
+        throw new BadRequestException(`Requerís 1 mes de antigüedad. En los últimos meses registramos ${cantPagos} pagos.`);
+      }
+
       const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
@@ -357,6 +379,23 @@ export class UsoBeneficioService {
         console.log(`📧 Mail enviado a Staff: ¡Nuevo grabado de placa para ${nombreFan}!`);
         break;
     }
+  }
+
+  private contarPagosRecientes(pagoLogs: any[], mesesHaciaAtras: number): number {
+    // Si no hay array de pagos o está vacío, no pagó nunca.
+    if (!pagoLogs || pagoLogs.length === 0) return 0;
+
+    // Calculamos la fecha límite (Ej: Si hoy es 28/03/2026 y pido 12 meses, la fecha límite es 28/03/2025)
+    const fechaLimite = new Date();
+    fechaLimite.setMonth(fechaLimite.getMonth() - mesesHaciaAtras);
+
+    return pagoLogs.filter(pago => {
+      // Usamos fecha_pago porque vi que así se llama tu columna en pago-log.entity.ts
+      const fechaDelPago = new Date(pago.fecha_pago); 
+      
+      // Solo contamos los pagos que sean más nuevos que nuestra fecha límite
+      return fechaDelPago >= fechaLimite;
+    }).length;
   }
 
 }
