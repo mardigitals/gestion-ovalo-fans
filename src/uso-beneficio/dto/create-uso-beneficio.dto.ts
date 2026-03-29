@@ -3,12 +3,8 @@ import { IsNotEmpty, IsString, IsOptional, IsNumber, IsEnum, IsDate, IsISO8601 }
 export class CreateUsoBeneficioDto {
 
   @IsNotEmpty()
-  @IsString()
+  @IsEnum(['VIP_BOXES', 'SALA_PRENSA', 'PLACA_RECTA', 'PACECAR_RESCATE', 'FAST_ACCESS', 'VISITAS_GUIADAS', 'REGALO_SUPERFAN', 'MULTIMEDIA_VIP', 'DESC_PRUEBAS', 'DESC_CARRERAS', 'DESC_RECITALES', 'DESC_COMERCIOS'])
   tipo_beneficio: string;
-
-  @IsNotEmpty()
-  @IsEnum(['Automático','Solicitado', 'Instantáneo QR'])
-  categoria_beneficio: string;
 
   @IsOptional()
   @IsISO8601() //VALIDA el JSON SIN ERRORES EN REACT ,IGUAL QUE @IsDateString 
