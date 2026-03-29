@@ -11,8 +11,9 @@ export class UsoBeneficio {
   @Column()
   suscripcion_id: number;
 
-  @Column({ length: 100 })
-  tipo_beneficio: string; // Ej: 'VIP_BOXES', 'PRUEBAS_LIBRES'
+  @Column({ type: 'enum', enum: ['VIP_BOXES', 'SALA_PRENSA', 'PLACA_RECTA', 'PACECAR_RESCATE', 'FAST_ACCESS', 'VISITAS_GUIADAS', 'REGALO_SUPERFAN', 'MULTIMEDIA_VIP', 'DESC_PRUEBAS', 'DESC_CARRERAS', 'DESC_RECITALES', 'DESC_COMERCIOS']
+  })
+  tipo_beneficio: string; 
 
   @Column({ type: 'enum', enum: ['Automático','Solicitado','Instantáneo QR'] })
   categoria_beneficio: string;
