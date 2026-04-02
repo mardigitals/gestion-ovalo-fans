@@ -302,6 +302,8 @@ export class UsoBeneficioService {
       const primerDiaMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       const ultimoDiaMes = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
 
+      //no validamos tipo_evento='Pruebas' ya que en esta version las pruebas no las cargamos, solo se chequeay valida el cupo mensual. Si en el futuro se cargan las pruebas como eventos, ahí sí habría que agregar esa validación.
+
       const usosMes = await this.usoBeneficioRepository.count({
         where: {
           suscripcion_id: suscripcion.id,
@@ -317,8 +319,23 @@ export class UsoBeneficioService {
 
     // --- REGLA P3: DESCUENTO EN CARRERAS (1 por persona por evento) 
     if (dto.tipo_beneficio === 'DESC_CARRERAS') {
+      
       if (!dto.evento_id) {
         throw new BadRequestException('Para este beneficio es necesario seleccionar una carrera (evento).');
+      }
+
+      const evento = await this.eventoRepository.findOne({
+        where: { id: dto.evento_id } 
+      });
+
+      if (!evento) throw new NotFoundException('El evento seleccionado no existe.');
+
+      if (evento.tipo_evento !== 'Carrera') {
+        throw new ForbiddenException('Seleccione la categoría de evento correcta para este descuento.');
+      }
+
+      if (evento.fecha_evento.getFullYear() !== hoy.getFullYear()) {
+         throw new ForbiddenException('Solo podés generar accesos para eventos del año en curso.');
       }
 
       const yaUsoEnEvento = await this.usoBeneficioRepository.count({
@@ -337,8 +354,19 @@ export class UsoBeneficioService {
 
     // --- REGLA P3: DESCUENTO EN RECITALES (1 por persona por evento) ---
     if (dto.tipo_beneficio === 'DESC_RECITALES') {
+      
       if (!dto.evento_id) {
         throw new BadRequestException('Para este beneficio es necesario seleccionar un recital (evento).');
+      }
+
+      const evento = await this.eventoRepository.findOne({
+        where: { id: dto.evento_id } 
+      });
+
+      if (!evento) throw new NotFoundException('El evento seleccionado no existe.');
+
+      if (evento.tipo_evento !== 'Recital') {
+        throw new ForbiddenException('Seleccione la categoría de evento correcta para este descuento.');
       }
 
       const yaUsoEnRecital = await this.usoBeneficioRepository.count({
