@@ -5,6 +5,8 @@ import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
 import { UsoBeneficio } from './entities/uso-beneficio.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Evento } from 'src/evento/entities/evento.entity';
+import { FindOptionsWhere } from 'typeorm/find-options/FindOptionsWhere';
+import { GetUsosFilterDto } from './dto/get-usos-filter.dto';
 
 @Injectable()
 export class UsoBeneficioService {
@@ -426,4 +428,93 @@ export class UsoBeneficioService {
     }).length;
   }
 
+  // =========================================================
+  // MÉTODOS PARA EL PANEL DEL STAFF (GESTIÓN)
+  // =========================================================
+
+ async obtenerTodosParaGestion(filtros: GetUsosFilterDto) {
+    
+    // Armamos un objeto de filtro dinámico
+    const whereRules: FindOptionsWhere<UsoBeneficio> = {};
+
+    if (filtros.estado) {
+      whereRules.estado = filtros.estado;
+    }
+
+    if (filtros.tipo_beneficio) {
+      whereRules.tipo_beneficio = filtros.tipo_beneficio;
+    }
+
+    // Filtrar por DNI requiere navegar por las relaciones
+    if (filtros.dni) {
+      whereRules.suscripcion = {
+        perfilFan: {
+          usuario: {
+            dni: filtros.dni
+          }
+        }
+      };
+    }
+
+    // Filtrar por una fecha específica (busca todo lo que pasó en ese día)
+    if (filtros.fecha) {
+      // Asumimos que desde el front mandan '2026-04-02'
+      const inicioDia = new Date(`${filtros.fecha}T00:00:00.000Z`);
+      const finDia = new Date(`${filtros.fecha}T23:59:59.999Z`);
+      
+      whereRules.fecha_solicitud = Between(inicioDia, finDia);
+    }
+
+    const solicitudes = await this.usoBeneficioRepository.find({
+      where: whereRules,
+      relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario', 'evento'],
+      order: { fecha_solicitud: 'DESC' }, 
+    });
+
+    // Peinamos los datos para devolver un JSON limpio y liviano al Frontend
+    return solicitudes.map(uso => ({
+      id: uso.id,
+      tipo_beneficio: uso.tipo_beneficio,
+      categoria: uso.categoria_beneficio,
+      estado: uso.estado,
+      fecha_solicitud: uso.fecha_solicitud,
+      fecha_uso: uso.fecha_uso,
+      notas_staff: uso.notas_staff,
+      // Aplanamos la data del usuario para que React no tenga que bucear en objetos anidados
+      fan: {
+        nombre_completo: `${uso.suscripcion.perfilFan.usuario.nombre} ${uso.suscripcion.perfilFan.usuario.apellido}`,
+        dni: uso.suscripcion.perfilFan.usuario.dni,
+        telefono: uso.suscripcion.perfilFan.usuario.telefono,
+        alias: uso.suscripcion.perfilFan.alias
+      },
+      // Si hay un evento asociado, mandamos solo lo básico
+      evento: uso.evento ? {
+        id: uso.evento.id,
+        nombre: uso.evento.titulo,
+        fecha: uso.evento.fecha_evento
+      } : null
+    }));
+  }
+  
+
+  async cambiarEstado(id: number, nuevoEstado: string, notas?: string) {
+    const uso = await this.usoBeneficioRepository.findOne({ where: { id } });
+    
+    if (!uso) {
+      throw new NotFoundException(`La solicitud #${id} no existe.`);
+    }
+
+    uso.estado = nuevoEstado;
+    
+    if (notas) {
+      uso.notas_staff = notas;
+    }
+
+  
+    if (nuevoEstado === 'Completado' && !uso.fecha_uso) {
+      uso.fecha_uso = new Date();
+    }
+
+    return await this.usoBeneficioRepository.save(uso);
+  }
 }
