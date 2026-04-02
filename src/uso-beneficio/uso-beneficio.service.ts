@@ -126,7 +126,7 @@ export class UsoBeneficioService {
         where: {
           suscripcion_id: suscripcion.id,
           tipo_beneficio: 'VIP_BOXES',
-          estado: Not('Rechazado') // Si se lo rechazaron antes, puede volver a pedir.
+          estado: Not('Rechazado') 
         }
       });
 
@@ -152,7 +152,8 @@ export class UsoBeneficioService {
         where: {
           suscripcion_id: suscripcion.id,
           tipo_beneficio: 'SALA_PRENSA',
-          fecha_solicitud: Between(primerDiaAnio, ultimoDiaAnio)
+          fecha_solicitud: Between(primerDiaAnio, ultimoDiaAnio),
+          estado: Not('Rechazado')
         }
       });
 
@@ -282,7 +283,8 @@ export class UsoBeneficioService {
         where: {
           suscripcion_id: suscripcion.id,
           tipo_beneficio: 'VISITAS_GUIADAS',
-          fecha_solicitud: Between(primerDiaAnio, ultimoDiaAnio)
+          fecha_solicitud: Between(primerDiaAnio, ultimoDiaAnio),
+          estado: Not('Rechazado')
         }
       });
 
@@ -343,7 +345,6 @@ export class UsoBeneficioService {
           suscripcion_id: suscripcion.id,
           tipo_beneficio: 'DESC_CARRERAS',
           evento_id: dto.evento_id,
-          estado: Not('Rechazado')
         }
       });
 
@@ -374,7 +375,6 @@ export class UsoBeneficioService {
           suscripcion_id: suscripcion.id,
           tipo_beneficio: 'DESC_RECITALES',
           evento_id: dto.evento_id,
-          estado: Not('Rechazado')
         }
       });
 
