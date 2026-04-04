@@ -50,13 +50,13 @@ export class RolStaffService {
     // 3. Si hay gente usando el rol, bloqueamos el borrado 
     if (perfilesConEsteRol > 0) {
       throw new BadRequestException(
-        `Imposible borrar: El rol "${rol.nombre_rol}" está siendo usado por ${perfilesConEsteRol} miembro(s) del staff. Reasigná a esas personas antes de eliminar el rol.`
+        `Imposible borrar: El rol  ${rol.nombre_rol} está siendo usado por ${perfilesConEsteRol} miembro(s) del staff. Reasigná a esas personas antes de eliminar el rol.`
       );
     }
 
     // 4. Si el contador dio 0, borramos físicamente con total seguridad
     await this.rolRepository.delete(id);
     
-    return { mensaje: `El rol #${id} (${rol.nombre_rol}) fue eliminado de la base de datos de manera segura.` };
+    return { mensaje: `El rol ${id}- (${rol.nombre_rol}) fue eliminado de la base de datos de manera segura.` };
   }
 }
