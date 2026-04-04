@@ -1,9 +1,9 @@
 import { UsoBeneficio } from 'src/uso-beneficio/entities/uso-beneficio.entity';
-import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Column, Entity, PrimaryGeneratedColumn, OneToMany, DeleteDateColumn } from 'typeorm';
 
 @Entity('evento')
 export class Evento {
-  
+
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -21,6 +21,9 @@ export class Evento {
 
   @Column ({type: 'enum', enum: ['TC', 'TURISMO PISTA', 'TC PICK UP', 'TC MOURAS', 'TC 2000', 'TURISMO NACIONAL', 'CARSHOW SANTAFESINO', 'TZ SANTAFESINO','CORDOBA PISTA', 'KARTING', 'PICADAS', 'Otros'], default: 'Otros', nullable: true})
   categoria_carrera: string;
+
+  @DeleteDateColumn({ name: 'eliminado_en', nullable: true })
+  eliminado_en: Date;
 
   // Relación inversa: Un perfil puede tener  muchos contenidos
   @OneToMany(() => UsoBeneficio, (usoBeneficio) => usoBeneficio.evento)
