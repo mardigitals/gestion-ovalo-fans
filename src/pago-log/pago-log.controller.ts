@@ -49,7 +49,7 @@ export class PagoLogController {
         await this.pagoLogService.procesarNotificacionPago(idNotificacion);
       }
     } catch (error) {
-      console.error('[Webhook Error] Falló el procesamiento del pago:', error.message);
+      console.error('[Webhook Error] Falló el procesamiento del pago:', (error as Error).message);
     }
   }
 }
