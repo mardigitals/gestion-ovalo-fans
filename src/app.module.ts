@@ -34,7 +34,7 @@ import { ComercioAliadoModule } from './comercio-aliado/comercio-aliado.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'), 
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: false,
       }),
     }),
     
