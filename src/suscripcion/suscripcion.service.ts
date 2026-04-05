@@ -234,4 +234,17 @@ export class SuscripcionService {
     
     return suscripcion;
   }
+
+  async obtenerNivelParaCensura(usuarioId: number): Promise<number> {
+    const suscripcion = await this.suscripcionRepository.findOne({
+      where: { 
+        perfilFan: { usuario_id: usuarioId },
+        estado: 'Activo' 
+      },
+      select: ['membresia_id'] // Solo nos interesa el ID por performance
+    });
+
+    // Si existe devolvemos el ID (1 o 2), si no, devolvemos 3 (Público)
+    return suscripcion ? suscripcion.membresia_id : 3;
+  }
 }
