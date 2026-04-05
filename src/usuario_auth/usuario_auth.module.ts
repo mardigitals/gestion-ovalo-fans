@@ -14,6 +14,7 @@ import { Usuario } from 'src/usuario/entities/usuario.entity';
     PassportModule,
     // Configuramos el generador de tokens
     JwtModule.register({
+      global:true,
       secret: 'PALABRA_SECRETA_RAFAELA_2026', // Después esto irá al .env por seguridad
       signOptions: { expiresIn: '1h' }, // El token dura 1 hora
     }),
