@@ -49,13 +49,17 @@ export class ContenidoMultimediaService {
   }
 
   // 2. FIND ALL con mapeo de lista
-  async findAll() {
+  async findAll(pagina: number = 1, limite: number = 10) {
+    const saltar = (pagina - 1) * limite; // Cuántos registros me salteo
+
     const resultados = await this.contenidoRepo.find({
       relations: ['autor', 'autor.usuario'],
       order: { 
         es_destacado: 'DESC',      
         fecha_publicacion: 'DESC'  
-      }
+      },
+      take: limite, // Traigo máximo 10
+      skip: saltar  // Salteando los anteriores
     });
 
     return resultados.map(item => ({
