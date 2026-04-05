@@ -22,7 +22,7 @@ export class PagoLog {
   @Column({ type: 'varchar', length: 50, nullable: true })
   metodo_pago: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true, unique: true })
   id_transaccion_mp: string;
 
   @CreateDateColumn()

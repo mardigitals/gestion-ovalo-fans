@@ -57,6 +57,17 @@ export class PagoLogService {
           return;
         }
 
+        // 2.1 Verificamos que no hayamos procesado este pago antes (IMPORTANTE para evitar duplicados en avisos repetidos de MP)
+       
+        const pagoYaExiste = await this.pagoLogRepository.findOne({
+            where: { id_transaccion_mp: String(pagoReal.id) }
+        });
+
+        if (pagoYaExiste) {
+          this.logger.log(`⚠️ El pago MP #${pagoReal.id} ya fue procesado anteriormente. Ignorando duplicado.`);
+          return; // Cortamos la ejecución acá para que no guarde ni active dos veces
+        }
+
         const monto = pagoReal.transaction_amount ?? 0; 
         const metodoPago = pagoReal.payment_type_id || 'mercadopago'; 
 
@@ -128,6 +139,7 @@ export class PagoLogService {
             pending: 'http://localhost:5173/pago/pendiente'
           },
           // auto_return: 'approved',
+          notification_url:'https://introductory-randa-hyaloid.ngrok-free.dev/pagos/webhook' // Cambialo por tu URL pública + ruta del webhook en tu controller
         }
       });
 
