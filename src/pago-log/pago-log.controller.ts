@@ -32,11 +32,11 @@ export class PagoLogController {
    */
   @Post('webhook')
   async recibirWebhookMp(@Body() body: any, @Res() res: Response) {
-    // 1. MP exige que le respondamos 200 OK inmediatamente (antes de procesar nada)
+    // 1."Protocolo http" MP exige que le respondamos 200 OK inmediatamente
     res.status(HttpStatus.OK).send();
 
     try {
-      // 2. MP envía la info de diferentes formas según cómo lo configures (IPN o Webhook)
+      // 2. "Adapt Pattern" MP envía la info de diferentes formas según cómo lo configures (IPN o Webhook)
       const tipoEvento = body.type || body.topic || body.action;
       const idNotificacion = body.data?.id || body.resource;
 
