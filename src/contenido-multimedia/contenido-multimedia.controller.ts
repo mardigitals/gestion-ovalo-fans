@@ -5,6 +5,8 @@ import { UpdateContenidoMultimediaDto } from './dto/update-contenido-multimedia.
 import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
 import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
 import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
+import { UseInterceptors } from '@nestjs/common';
+import { CensuraVipInterceptor } from './contenido-multimedia-interceptor';
 
 
 @Controller('contenido-multimedia')
@@ -21,12 +23,14 @@ export class ContenidoMultimediaController {
   }
 
   // 2. GET ALL: Público (Cualquiera que ingrese)
+  @UseInterceptors(CensuraVipInterceptor)
   @Get()
   findAll() {
     return this.contenidoMultimediaService.findAll();
   }
 
   // 3. GET ONE: Público
+  @UseInterceptors(CensuraVipInterceptor)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.contenidoMultimediaService.findOne(+id);
