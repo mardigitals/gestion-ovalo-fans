@@ -241,7 +241,6 @@ export class SuscripcionService {
         perfilFan: { usuario_id: usuarioId },
         estado: 'Activo' 
       },
-      select: ['membresia_id'] // Solo nos interesa el ID por performance
     });
 
     // Si existe devolvemos el ID (1 o 2), si no, devolvemos 3 (Público)
