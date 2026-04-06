@@ -17,8 +17,8 @@ export class CreateContenidoMultimediaDto {
   @MaxLength(150, { message: 'El título no puede superar los 150 caracteres' })
   titulo: string;
 
-  @IsEnum(['Video', 'Foto', 'Nota'], { 
-    message: 'El tipo debe ser video, foto o nota' 
+  @IsEnum(['noticia', 'video', 'imagen'], { 
+    message: 'El tipo debe ser noticia, video o imagen' 
   })
   tipo: string;
 
