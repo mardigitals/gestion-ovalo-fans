@@ -9,6 +9,9 @@ export class ComercioAliado {
   @Column({ type: 'varchar', length: 100 })
   nombre_comercio: string;
 
+  @Column({ type: 'varchar', length: 20, unique: true, nullable: true })
+  cuit: string;
+
   @Column({ type: 'varchar', length: 50, nullable: true })
   rubro: string;
 

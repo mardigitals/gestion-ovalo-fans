@@ -5,6 +5,9 @@ import { UpdateComercioAliadoDto } from './dto/update-comercio-aliado.dto';
 import { ComercioAliado } from './entities/comercio-aliado.entity';
 import { Repository, Like } from 'typeorm';
 import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
+import { validarCuit } from 'src/utilidades/validar.cuit';
+import { BadRequestException } from '@nestjs/common';
+
 
 
 @Injectable()
@@ -18,11 +21,19 @@ export class ComercioAliadoService {
   ) {}
 
   async create(dto: CreateComercioAliadoDto) {
+    if (!validarCuit(dto.cuit)) {
+      throw new BadRequestException('El CUIT ingresado es inválido para el sistema fiscal argentino.');
+    }
+    
     const nuevoComercio = this.comercioRepository.create(dto);
     return await this.comercioRepository.save(nuevoComercio);
   }
 
   async update(id: number, dto: UpdateComercioAliadoDto) {
+    if (dto.cuit && !validarCuit(dto.cuit)) {
+      throw new BadRequestException('El CUIT actualizado es inválido.');
+    }
+
     await this.comercioRepository.update(id, dto);
     return await this.comercioRepository.findOne({ where: { id } });
   }

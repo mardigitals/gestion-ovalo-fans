@@ -1,4 +1,4 @@
-import {IsString, IsNotEmpty, IsInt, MaxLength, IsEnum, IsOptional} from 'class-validator';
+import {IsString, IsNotEmpty, IsInt, MaxLength, IsEnum, IsOptional, Length} from 'class-validator';
 
 export class CreateComercioAliadoDto {
 
@@ -6,6 +6,11 @@ export class CreateComercioAliadoDto {
     @MaxLength(100)
     @IsNotEmpty({message : 'El nombre del comercio es obligatorio'})
     nombre_comercio: string;
+
+    @IsString()
+    @IsNotEmpty()
+    @Length(11, 13) 
+    cuit: string;
 
     @IsString()
     @MaxLength(50)
