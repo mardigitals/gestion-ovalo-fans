@@ -10,6 +10,7 @@ import * as crypto from 'crypto';
 import { MoreThan } from 'typeorm';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Usuario } from 'src/usuario/entities/usuario.entity';
+import { MailService } from 'src/mail/mail.service';
 
 
 @Injectable()
@@ -20,7 +21,7 @@ export class UsuarioAuthService {
 
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
-
+    private mailService: MailService,
     private jwtService: JwtService, // <--- Inyectamos  generador de tokens
   ) {}
 
@@ -100,35 +101,31 @@ export class UsuarioAuthService {
   }
 
   async forgotPassword(email: string) {
-    // 1. Verificar si el usuario existe
-    const usuario = await this.usuarioAuthRepository.findOne({
-      where: { email },
-      withDeleted: true
-    });
-
+    const usuario = await this.usuarioAuthRepository.findOne({ where: { email }, withDeleted: true });
     if (!usuario) {
       throw new NotFoundException('No se encontró un usuario con ese correo electrónico.');
     }
 
-    // 2. Generar un token aleatorio seguro de 64 caracteres
     const token = crypto.randomBytes(32).toString('hex');
-
-    // 3. Definir la expiración (ejemplo: 15 minutos desde ahora)
     const tiempoExpiracion = new Date();
     tiempoExpiracion.setMinutes(tiempoExpiracion.getMinutes() + 15);
 
-    // 4. Guardar en los campos que ya tienes en la tabla
     usuario.token_recuperacion = token;
     usuario.token_expiracion = tiempoExpiracion;
-
     await this.usuarioAuthRepository.save(usuario);
 
-    // 5. En el futuro aquí enviaremos el mail con NodeMailer. 
-    // Por ahora lo devolvemos para testear en Postman.
-    return {
-      message: 'Se ha generado un token de recuperación (válido por 15 min).',
-      token: token // <--- Esto lo copiamos para el siguiente paso en Postman
-    };
+    // En producción, aquí pondrías la URL de tu frontend de React
+    const urlRecuperacion = `http://localhost:3000/reset-password?token=${token}`;
+    
+    await this.mailService.enviarCorreo(
+      email,
+      '🏎️ Recuperación de contraseña - Óvalo Fans',
+      `Hola fierrero! Has solicitado restablecer tu contraseña.\n\n` +
+      `Ingresa al siguiente enlace para crear una nueva (válido por 15 min):\n${urlRecuperacion}\n\n` +
+      `Si no solicitaste esto, ignora este mensaje.`
+    );
+
+    return { message: 'Se ha enviado un correo con las instrucciones para restablecer tu contraseña.' };
   }
 
   async resetPassword(resetPasswordDto: ResetPasswordDto) {
@@ -156,45 +153,69 @@ export class UsuarioAuthService {
 
     await this.usuarioAuthRepository.save(usuario);
 
+    await this.mailService.enviarCorreo(
+      usuario.email,
+      '✅ Contraseña actualizada - Óvalo Fans',
+      `Tu contraseña ha sido actualizada correctamente. Si no realizaste este cambio, contacta a soporte inmediatamente.`
+    );
+
     return { message: 'Tu contraseña ha sido actualizada correctamente. Ya puedes iniciar sesión.' };
   }
 
   // SOLICITAR BAJA (El usuario desde su perfil)
-  async remove (authId: number) {
+  async remove(authId: number) {
     const auth = await this.usuarioAuthRepository.findOne({
       where: { id: authId },
-      relations: ['usuario', 'usuario.perfilStaff'] // Traemos toda la cadena
+      relations: ['usuario']
     });
 
     if (!auth) throw new NotFoundException('Cuenta no encontrada');
 
-    await this.usuarioAuthRepository.softRemove(auth); // Borra Auth -> Usuario -> Staff
+    // Generamos un token por si quiere volver
+    const tokenReactivacion = crypto.randomBytes(32).toString('hex');
+    auth.token_recuperacion = tokenReactivacion;
+    auth.token_expiracion = null; // Sin límite para volver
+
+    await this.usuarioAuthRepository.save(auth);
+    await this.usuarioAuthRepository.softRemove(auth);
+
+    await this.mailService.enviarCorreo(
+      auth.email,
+      '👋 Cuenta desactivada - Óvalo Fans',
+      `Tu cuenta ha sido desactivada correctamente. Te extrañaremos en las pistas.\n\n` +
+      `Si quieres volver, puedes reactivar tu cuenta aquí: http://localhost:3000/reactivar?token=${tokenReactivacion}`
+    );
+
     return { message: "Tu cuenta ha sido desactivada correctamente." };
   }
 
   // REACTIVAR CUENTA (con el token enviado por email)
   async restore(token: string) {
-    
     const auth = await this.usuarioAuthRepository.findOne({
       where: { 
         token_recuperacion: token,
-        token_expiracion: MoreThan(new Date()) 
       },
-      withDeleted: true, // CLAVE: para encontrar al que está en la "papelera"
-      relations: ['usuario', 'usuario.perfilStaff']
+      withDeleted: true, 
+      relations: ['usuario']
     });
 
     if (!auth) {
-      throw new BadRequestException('El token de reactivación es inválido o ha expirado.');
+      throw new BadRequestException('El token de reactivación es inválido.');
     }
 
-    // 2. Quitamos la marca de borrado de toda la cadena (Auth -> Usuario -> Staff)
+    // Recuperamos la cuenta
     await this.usuarioAuthRepository.recover(auth);
 
-    // 3. Limpiamos los campos del token para que no se use de nuevo
+    // Limpieza de seguridad
     auth.token_recuperacion = null;
     auth.token_expiracion = null;
     await this.usuarioAuthRepository.save(auth);
+
+    await this.mailService.enviarCorreo(
+      auth.email,
+      '🏁 ¡Bienvenido de nuevo! - Óvalo Fans',
+      `Tu cuenta ha sido reactivada con éxito. Ya podés loguearte y seguir disfrutando de los beneficios del Autódromo.`
+    );
 
     return { message: "¡Cuenta reactivada! Ya puedes iniciar sesión normalmente." };
   }
