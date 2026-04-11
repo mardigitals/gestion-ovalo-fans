@@ -7,10 +7,12 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport'; 
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { Usuario } from 'src/usuario/entities/usuario.entity';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UsuarioAuth, Usuario]),
+    MailModule,
     PassportModule,
     // Configuramos el generador de tokens
     JwtModule.register({
