@@ -136,6 +136,7 @@ export class UsuarioAuthService {
       token_recuperacion: token,
       token_expiracion: MoreThan(new Date()) 
     },
+    select: ['id', 'email', 'contrasena_hash', 'token_recuperacion', 'token_expiracion'],
     withDeleted: true 
   });
 
