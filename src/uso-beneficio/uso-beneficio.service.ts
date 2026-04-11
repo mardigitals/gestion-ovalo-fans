@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Evento } from 'src/evento/entities/evento.entity';
 import { FindOptionsWhere } from 'typeorm/find-options/FindOptionsWhere';
 import { GetUsosFilterDto } from './dto/get-usos-filter.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class UsoBeneficioService {
@@ -18,6 +19,7 @@ export class UsoBeneficioService {
     private readonly suscripcionRepository: Repository<Suscripcion>,
     @InjectRepository(Evento)
     private readonly eventoRepository: Repository<Evento>,
+    private readonly mailService: MailService,
   ) {}
  
   async registrarUso(dto: CreateUsoBeneficioDto, usuarioId: number) {
@@ -387,26 +389,40 @@ export class UsoBeneficioService {
   }
 
   //Patron Observer? Para cada beneficio que requiera acción
+  // Al ESCALAR aplicar REFACTOR con Observer Event.emmit
   private async dispararNotificaciones(uso: UsoBeneficio, suscripcion: any) {
     const nombreFan = `${suscripcion.perfilFan.usuario.nombre} ${suscripcion.perfilFan.usuario.apellido}`;
+    const dniFan = suscripcion.perfilFan.usuario.dni;
+    
+    // aca o en el .env
+    const emailStaff = process.env.EMAIL_STAFF || 'autrafaela@gmail.com'; 
 
     switch (uso.tipo_beneficio) {
       case 'SALA_PRENSA':
       case 'PACECAR_RESCATE':
       case 'VISITAS_GUIADAS':
-        // Llamamos a un servicio de Mail (que crearemos luego)
-        // this.mailService.enviarAvisoStaff(uso.tipo_beneficio, nombreFan, suscripcion.perfilFan.usuario.dni);
-        console.log(`📧 Mail enviado a Staff: El fan ${nombreFan} solicitó ${uso.tipo_beneficio}. Revisar disponibilidad y coordinar por WhatsApp.`);
+        await this.mailService.enviarCorreo(
+          emailStaff,
+          `🏁 Nueva Solicitud P1/P2: ${uso.tipo_beneficio}`,
+          `El fan ${nombreFan} (DNI: ${dniFan}) solicitó utilizar su beneficio de ${uso.tipo_beneficio}.\n\nPor favor, revisar el panel de gestión para verificar disponibilidad y coordinar detalles con el usuario.`
+        );
         break;
 
       case 'REGALO_SUPERFAN':
-        //Especial para el regalo superfan, quizás con más detalles para que el staff sepa qué gestionar
-        console.log(`📧 Mail enviado a Staff: El fan ${nombreFan} cumplió un año. Debemos enviar su regalo Superfan. Revisar detalles para gestionar.`);
+        await this.mailService.enviarCorreo(
+          emailStaff,
+          `🎁 Regalo Anual Superfan - ${nombreFan}`,
+          `El fan ${nombreFan} (DNI: ${dniFan}) ha cumplido un año de antigüedad y solicitó su regalo Superfan.\n\nRevisar en el sistema los detalles del usuario para gestionar el envío o entrega en el Autódromo.`
+        );
         break;
 
       case 'PLACA_RECTA':
-        // Este es especial, quizás también un mail al proveedor de las placas o pintor
-        console.log(`📧 Mail enviado a Staff: ¡Nuevo grabado de placa para ${nombreFan}!`);
+        // Podés mandarle copia directa al proveedor si quisieras
+        await this.mailService.enviarCorreo(
+          emailStaff,
+          `🏆 Nuevo Grabado de Placa: ${nombreFan}`,
+          `¡Atención! Se ha aprobado un nuevo beneficio de grabado de placa en la recta principal para el socio vitalicio: ${nombreFan}.\n\nIniciar gestiones con el proveedor.`
+        );
         break;
     }
   }
