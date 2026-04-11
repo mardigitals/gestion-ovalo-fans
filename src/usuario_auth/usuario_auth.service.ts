@@ -143,7 +143,13 @@ export class UsuarioAuthService {
       throw new BadRequestException('El token es inválido o ha expirado.');
     }
 
-    // 2. Hashear la nueva contraseña (la que validamos con la Regex fuerte)
+    const esMismaClave = await bcrypt.compare(nuevaContrasena, usuario.contrasena_hash);
+        
+      if (esMismaClave) {
+        throw new BadRequestException('La nueva contraseña no puede ser igual a la anterior.');
+      }
+
+    // 2. Hashear la nueva contraseña 
     const salt = await bcrypt.genSalt(10);
     usuario.contrasena_hash = await bcrypt.hash(nuevaContrasena, salt);
 
