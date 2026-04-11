@@ -12,7 +12,7 @@ export class MailService {
       port: Number(process.env.MAIL_PORT) || 587,
       secure: false, // true para el puerto 465, false para los demás
       auth: {
-        user: process.env.MAIL_USER, //mail de donde sale las alertas (ovalofans.alertas@gmail.com)
+        user: process.env.MAIL_USER, //mail de donde sale las alertas (crear ovalofans.alertas@gmail.com o propio para testear)
         pass: process.env.MAIL_PASS, // Contraseña de aplicación (si usás Gmail)
       },
     });
