@@ -16,6 +16,7 @@ import { PagoLogModule } from './pago-log/pago-log.module';
 import { UsoBeneficioModule } from './uso-beneficio/uso-beneficio.module';
 import { EventoModule } from './evento/evento.module';
 import { ComercioAliadoModule } from './comercio-aliado/comercio-aliado.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -61,6 +62,8 @@ import { ComercioAliadoModule } from './comercio-aliado/comercio-aliado.module';
     EventoModule,
     
     ComercioAliadoModule,
+    
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
