@@ -55,4 +55,9 @@ export class ComercioAliadoController {
     return this.comercioAliadoService.validarFanParaDescuento(dni);
   }
 
+  @Get('mapa') 
+  async obtenerParaMapa() {
+    return await this.comercioAliadoService.findAll();
+  }
+
 }
