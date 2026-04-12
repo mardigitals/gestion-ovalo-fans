@@ -1,4 +1,4 @@
-import {IsString, IsNotEmpty, IsInt, MaxLength, IsEnum, IsOptional, Length} from 'class-validator';
+import {IsString, IsNotEmpty, IsInt, MaxLength, IsEnum, IsOptional, Length, IsDecimal } from 'class-validator';
 
 export class CreateComercioAliadoDto {
 
@@ -20,6 +20,14 @@ export class CreateComercioAliadoDto {
     @IsInt()
     @IsOptional()    
     descuento_porcentaje?: number;
+
+    @IsDecimal()
+    @IsOptional()
+    latitud?: number;
+
+    @IsDecimal()
+    @IsOptional()
+    longitud?: number;
 
   
     @IsEnum(['SOLO_EFECTIVO', 'CON_TARJETA', 'CON_TRANSFERENCIA', 'EFECTIVO_TRANSFERENCIA', 'TODOS'])
