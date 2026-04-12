@@ -35,4 +35,10 @@ export class ComercioAliado {
 
   @Column({ type: 'varchar', length: 10 })
   cp: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 8, nullable: true })
+  latitud: number;
+
+  @Column({ type: 'decimal', precision: 11, scale: 8, nullable: true })
+  longitud: number;
 }
