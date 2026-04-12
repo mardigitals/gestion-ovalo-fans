@@ -17,6 +17,7 @@ import { UsoBeneficioModule } from './uso-beneficio/uso-beneficio.module';
 import { EventoModule } from './evento/evento.module';
 import { ComercioAliadoModule } from './comercio-aliado/comercio-aliado.module';
 import { MailModule } from './mail/mail.module';
+import { UtilidadesModule } from './utilidades/utilidades.module';
 
 @Module({
   imports: [
@@ -64,6 +65,8 @@ import { MailModule } from './mail/mail.module';
     ComercioAliadoModule,
     
     MailModule,
+
+    UtilidadesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
