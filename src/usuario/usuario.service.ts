@@ -44,20 +44,31 @@ export class UsuarioService {
     }
   }
 
-  async findAll(query: { ciudad?: string; provincia?: string; activo?: string }) {
-    const { ciudad, provincia, activo } = query;
+  async findAll(query: { pagina?: number; limite?: number; ciudad?: string; provincia?: string; activo?: string }) {
+    const { pagina = 1, limite = 10, ciudad, provincia, activo } = query;
+    const saltar = (pagina - 1) * limite;
     
     const where: any = {};
 
     if (ciudad) where.ciudad = ciudad;
     if (provincia) where.provincia = provincia;
 
-    return await this.usuarioRepository.find({
+    const [data, total] = await this.usuarioRepository.findAndCount({
       where,
       order: { apellido: 'ASC' },
+      take: limite,
+      skip: saltar,
       // Si activo viene como 'false', traemos también los borrados
       withDeleted: activo === 'false' ? true : false,
     });
+
+    return {
+      data,
+      total,
+      pagina,
+      limite,
+      totalPaginas: Math.ceil(total / limite)
+    };
   }
 
   async findOne(id: number) {
