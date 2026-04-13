@@ -147,8 +147,23 @@ export class SuscripcionService {
     return await this.suscripcionRepository.save(suscripcion);
   }
 
-  async findAll() {
-    return await this.suscripcionRepository.find({ relations: ['perfilFan', 'membresia'] });
+  async findAll(pagina: number = 1, limite: number = 10) {
+    const saltar = (pagina - 1) * limite;
+
+    const [data, total] = await this.suscripcionRepository.findAndCount({
+      relations: ['perfilFan', 'membresia'],
+      take: limite,
+      skip: saltar,
+      order: { id: 'DESC' }
+    });
+
+    return {
+      data,
+      total,
+      pagina,
+      limite,
+      totalPaginas: Math.ceil(total / limite)
+    };
   }
 
   async findOne(usuarioId: number) {
@@ -211,7 +226,7 @@ export class SuscripcionService {
 
   async countByCiudad() {
     return await this.suscripcionRepository.manager
-      .getRepository('PerfilFan') // 👈 Arrancamos desde el Perfil
+      .getRepository('PerfilFan') 
       .createQueryBuilder('perfil')
       .innerJoin('perfil.usuario', 'usuario') 
       .select('usuario.ciudad', 'ciudad')
