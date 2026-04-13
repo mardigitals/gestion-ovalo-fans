@@ -39,11 +39,21 @@ export class PerfilFanService {
   async findAll(pagina: number = 1, limite: number = 10) {
     const saltar = (pagina - 1) * limite;
 
-    return await this.perfilFanRepository.find({
+    // findAndCount devuelve un array: [datos, total_registros]
+    const [data, total] = await this.perfilFanRepository.findAndCount({
       relations: ['usuario'],
-      take: limite, // Traigo máximo 10
-      skip: saltar  // Salteando los anteriores
+      take: limite,
+      skip: saltar,
+      order: { id: 'DESC' } 
     });
+
+    return {
+      data,
+      total,
+      pagina,
+      limite,
+      totalPaginas: Math.ceil(total / limite)
+    };
   }
   
   async findOne(id: number, usuarioIdSolicitante: number, rolSolicitante: string) {
