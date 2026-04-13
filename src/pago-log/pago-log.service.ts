@@ -100,6 +100,25 @@ export class PagoLogService {
     });
   }
 
+  async findAll(pagina: number = 1, limite: number = 10) {
+    const saltar = (pagina - 1) * limite;
+
+    const [data, total] = await this.pagoLogRepository.findAndCount({
+      relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario'],
+      take: limite,
+      skip: saltar,
+      order: { fecha_pago: 'DESC' }
+    });
+
+    return {
+      data,
+      total,
+      pagina,
+      limite,
+      totalPaginas: Math.ceil(total / limite)
+    };
+  }
+
   /**
    * GENERAR LINK DE PAGO (Checkout Pro de Mercado Pago)
    */
