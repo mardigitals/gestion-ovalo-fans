@@ -36,12 +36,15 @@ export class PerfilFanService {
     return await this.perfilFanRepository.save(nuevoPerfil);
   }
 
-  async findAll() {
+  async findAll(pagina: number = 1, limite: number = 10) {
+    const saltar = (pagina - 1) * limite;
+
     return await this.perfilFanRepository.find({
       relations: ['usuario'],
+      take: limite, // Traigo máximo 10
+      skip: saltar  // Salteando los anteriores
     });
   }
-
   
   async findOne(id: number, usuarioIdSolicitante: number, rolSolicitante: string) {
     const perfil = await this.perfilFanRepository.findOne({
