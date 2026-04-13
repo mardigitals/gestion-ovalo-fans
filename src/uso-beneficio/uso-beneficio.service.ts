@@ -449,7 +449,8 @@ export class UsoBeneficioService {
   // =========================================================
 
  async obtenerTodosParaGestion(filtros: GetUsosFilterDto) {
-    
+    const { pagina = 1, limite = 10 } = filtros; // Valores por defecto
+    const saltar = (pagina - 1) * limite;
     // Armamos un objeto de filtro dinámico
     const whereRules: FindOptionsWhere<UsoBeneficio> = {};
 
@@ -481,14 +482,16 @@ export class UsoBeneficioService {
       whereRules.fecha_solicitud = Between(inicioDia, finDia);
     }
 
-    const solicitudes = await this.usoBeneficioRepository.find({
+    const [solicitudes, total] = await this.usoBeneficioRepository.findAndCount({
       where: whereRules,
       relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario', 'evento'],
       order: { fecha_solicitud: 'DESC' }, 
+      take: limite, // 👈 Paginación
+      skip: saltar   // 👈 Paginación
     });
 
     // Peinamos los datos para devolver un JSON limpio y liviano al Frontend
-    return solicitudes.map(uso => ({
+   const dataLimpia = solicitudes.map(uso => ({
       id: uso.id,
       tipo_beneficio: uso.tipo_beneficio,
       categoria: uso.categoria_beneficio,
@@ -510,6 +513,13 @@ export class UsoBeneficioService {
         fecha: uso.evento.fecha_evento
       } : null
     }));
+
+    return {
+      data: dataLimpia,
+      total,
+      pagina,
+      totalPaginas: Math.ceil(total / limite)
+    };
   }
   
 

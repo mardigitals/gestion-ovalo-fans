@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsEnum, IsISO8601 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsOptional, IsString, IsEnum, IsISO8601, Min, IsInt } from 'class-validator';
 
 export class GetUsosFilterDto {
   @IsOptional()
@@ -20,4 +21,16 @@ export class GetUsosFilterDto {
     message: 'El estado a buscar no es válido.'
   })
   estado?: string;
+
+  @IsOptional()
+  @Type(() => Number) 
+  @IsInt()
+  @Min(1)
+  pagina?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limite?: number = 10;
 }
