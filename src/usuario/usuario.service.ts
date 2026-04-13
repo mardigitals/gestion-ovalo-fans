@@ -16,7 +16,7 @@ export class UsuarioService {
     try {
       const nuevoUsuario = this.usuarioRepository.create(createUsuarioDto);
       return await this.usuarioRepository.save(nuevoUsuario);
-    } catch (error) {
+    } catch (error: any) {
       // Error de MySQL para entradas duplicadas (ej: DNI repetido)
       if (error.code === 'ER_DUP_ENTRY') {
         throw new ConflictException(`El DNI ${createUsuarioDto.dni} ya está registrado en Óvalo Fans.`);
@@ -36,7 +36,7 @@ export class UsuarioService {
       // Object.assign mezcla los cambios del DTO sobre el objeto existente
       const usuarioActualizado = Object.assign(usuario, updateUsuarioDto);
       return await this.usuarioRepository.save(usuarioActualizado);
-    } catch (error) {
+    } catch (error: any) {
       if (error.code === 'ER_DUP_ENTRY') {
         throw new ConflictException('El DNI ya pertenece a otro usuario registrado.');
       }

@@ -44,7 +44,7 @@ export class PerfilStaffService {
     
     // 3. Guardamos los cambios
     return await this.perfilStaffRepository.save(staffActualizado);
-  } catch (error) {
+  } catch (error: any) {
     // Manejo de error de FK por si el rol_staff_id no existe
     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
       throw new BadRequestException('El rol de staff proporcionado no es válido.');
