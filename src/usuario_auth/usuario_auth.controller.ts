@@ -47,14 +47,17 @@ export class UsuarioAuthController {
     return this.usuarioAuthService.remove(req.user.userId);
   }
 
-  // RUTA PROTEGIDA DE PRUEBA
   @UseGuards(JwtAuthGuard) // <-- ESTE es el candado
   @Get('perfil')
-  obtenerPerfil(@Request() req) {
-    // Si llegamos acá, el token es válido y los datos están en req.user
-    return req.user;
-  }
+  async obtenerPerfil(@Request() req) {
+    // 1. Agarramos los datos básicos que nos dejó el token
+    const userId = req.user.id || req.user.userId;
+    const rol = req.user.rol;
 
+    // 2. Llamamos a nuestro Service para que busque el nivel exacto en la base de datos
+    return await this.usuarioAuthService.obtenerDatosCompletos(userId, rol);
+  }
+  
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin')
   @Patch(':id/suspend')

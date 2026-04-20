@@ -8,10 +8,13 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { MailModule } from 'src/mail/mail.module';
+import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
+import { PerfilFan } from 'src/perfil-fan/entities/perfil-fan.entity';
+import { PerfilStaff } from 'src/perfil-staff/entities/perfil-staff.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UsuarioAuth, Usuario]),
+    TypeOrmModule.forFeature([UsuarioAuth, Usuario, PerfilFan, PerfilStaff, Suscripcion]),
     MailModule,
     PassportModule,
     // Configuramos el generador de tokens

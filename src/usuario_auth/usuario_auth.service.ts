@@ -11,7 +11,9 @@ import { MoreThan } from 'typeorm';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { MailService } from 'src/mail/mail.service';
-
+import { PerfilFan } from 'src/perfil-fan/entities/perfil-fan.entity';
+import { PerfilStaff } from 'src/perfil-staff/entities/perfil-staff.entity';
+import { Suscripcion } from 'src/suscripcion/entities/suscripcion.entity';
 
 @Injectable()
 export class UsuarioAuthService {
@@ -23,6 +25,13 @@ export class UsuarioAuthService {
     private readonly usuarioRepository: Repository<Usuario>,
     private mailService: MailService,
     private jwtService: JwtService, // <--- Inyectamos  generador de tokens
+
+    @InjectRepository(PerfilFan)
+    private readonly perfilFanRepository: Repository<PerfilFan>,
+    @InjectRepository(PerfilStaff)
+    private readonly perfilStaffRepository: Repository<PerfilStaff>,
+    @InjectRepository(Suscripcion)
+    private readonly suscripcionRepository: Repository<Suscripcion>,
   ) {}
 
   async create(createUsuarioAuthDto: CreateUsuarioAuthDto) {
@@ -256,6 +265,52 @@ export class UsuarioAuthService {
     }
 
     return { message: `La cuenta con ID ${id} ha sido reactivada.` };
+  }
+
+  async obtenerDatosCompletos(userId: number, rol: string) {
+    const data: any = {
+      userId,
+      rol: rol.toLowerCase(), // Normalizado para el frontend
+    };
+
+    if (rol.toLowerCase() === 'fan') {
+      // 1. Buscamos el perfil del Fan
+      const perfil = await this.perfilFanRepository.findOne({
+        where: { usuario_id: userId }
+      });
+
+      // 2. Por defecto, si no tiene perfil o no tiene suscripción activa, es el nivel base (Bronce) 
+      data.nivelFan = 'P3';
+      data.nombre = perfil?.alias || 'Socio';
+
+      // 3. Si existe el perfil, buscamos su suscripción ACTIVA
+      if (perfil) {
+        const suscripcionActiva = await this.suscripcionRepository.findOne({
+          where: { 
+            perfil_fan_id: perfil.id,
+            estado: 'Activo' // <-- ACÁ ESTÁ LA MAGIA DE SEGURIDAD
+          },
+          order: { id: 'DESC' } // Por si hay varias, traemos la última
+        });
+
+        // 4. Si encontramos una suscripción pagada y activa, le asignamos ese nivel
+        if (suscripcionActiva) {
+          // Si tu DB guarda 1, 2 o 3, lo transformamos a P1, P2, P3 para que el frontend lo entienda perfecto
+          data.nivelFan = `P${suscripcionActiva.membresia_id}`; 
+        }
+      }
+
+    } else {
+      // --- LÓGICA DE STAFF ---
+      const staff = await this.perfilStaffRepository.findOne({
+        where: { usuario_id: userId },
+        relations: ['rolStaff']
+      });
+      // Si no tiene rol definido, cae en el rol por defecto que le pasaste
+      data.rol = staff?.rolStaff?.nombre_rol || rol; 
+    }
+
+    return data;
   }
 
 }
