@@ -313,6 +313,30 @@ export class UsuarioAuthService {
     return data;
   }
 
+  async findAll(pagina: number = 1, limite: number = 10) {
+    const saltar = (pagina - 1) * limite;
+
+    // findAndCount devuelve un array: [datos, total_registros]
+    const [data, total] = await this.usuarioAuthRepository.findAndCount({
+      relations: ['usuario'],
+      take: limite,
+      skip: saltar,
+      order: { id: 'DESC' } 
+    });
+
+    return {
+      data,
+      total,
+      pagina,
+      limite,
+      totalPaginas: Math.ceil(total / limite)
+    };
+  }
+
+  deleteByAdmin(id: number) {
+    return this.usuarioAuthRepository.softDelete(id);
+  }
+
 }
 
   

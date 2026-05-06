@@ -57,6 +57,13 @@ export class UsuarioAuthController {
     // 2. Llamamos a nuestro Service para que busque el nivel exacto en la base de datos
     return await this.usuarioAuthService.obtenerDatosCompletos(userId, rol);
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin')
+  @Get('all')
+  findAll() {
+    return this.usuarioAuthService.findAll();
+  }
   
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin')
@@ -71,6 +78,13 @@ export class UsuarioAuthController {
   restartByAdmin(@Param('id') id: string) {
     return this.usuarioAuthService.restartByAdmin(+id);
   }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin')
+  @Delete(':id')
+  deleteByAdmin(@Param('id') id: string) {
+    return this.usuarioAuthService.deleteByAdmin(+id);
+  } 
 
 }
 
