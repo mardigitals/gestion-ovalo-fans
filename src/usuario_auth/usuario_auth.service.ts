@@ -319,6 +319,8 @@ export class UsuarioAuthService {
     // findAndCount devuelve un array: [datos, total_registros]
     const [data, total] = await this.usuarioAuthRepository.findAndCount({
       relations: ['usuario'],
+      select: ['id', 'email', 'estado_cuenta', 'ultimo_login', 'ultima_ip', 'dos_factores_activado', 'navegador_dispositivo', 'eliminado_en'], // Solo los campos que queremos mostrar
+      withDeleted: true,
       take: limite,
       skip: saltar,
       order: { id: 'DESC' } 
