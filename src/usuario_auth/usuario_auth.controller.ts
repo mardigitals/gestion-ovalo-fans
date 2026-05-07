@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Request, Delete, Patch, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, Delete, Patch, Param, Query } from '@nestjs/common';
 import { UsuarioAuthService } from './usuario_auth.service';
 import { CreateUsuarioAuthDto } from './dto/create-usuario_auth.dto';
 import { LoginDto } from './dto/login.dto';
@@ -61,8 +61,9 @@ export class UsuarioAuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin')
   @Get('all')
-  findAll() {
-    return this.usuarioAuthService.findAll();
+  findAll(@Query('pagina') pagina: string) {
+    const pageNumber = pagina ? Number(pagina) : 1; 
+    return this.usuarioAuthService.findAll(pageNumber);
   }
   
   @UseGuards(JwtAuthGuard, RolesGuard)
