@@ -1,6 +1,6 @@
 import { Injectable, ConflictException, UnauthorizedException, NotFoundException, BadRequestException} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Like } from 'typeorm';
 import { UsuarioAuth } from './entities/usuario_auth.entity';
 import { CreateUsuarioAuthDto } from './dto/create-usuario_auth.dto';
 import * as bcrypt from 'bcrypt';
@@ -313,13 +313,25 @@ export class UsuarioAuthService {
     return data;
   }
 
-  async findAll(pagina: number = 1, limite: number = 10) {
+  async findAll(pagina: number = 1, limite: number = 10, buscar: string = '') {
     const saltar = (pagina - 1) * limite;
 
-    // findAndCount devuelve un array: [datos, total_registros]
+    // condición de búsqueda. Si hay texto, buscamos: 
+    let condicionWhere: any = {};
+    if (buscar) {
+      condicionWhere = [
+        { email: Like(`%${buscar}%`) },
+        { estado_cuenta: Like(`%${buscar}%`) },
+        { ultima_ip: Like(`%${buscar}%`) },
+        { dos_factores_activado: Like(`%${buscar}%`) }, 
+        { eliminado_en: Like(`%${buscar}%`) },
+        { ultimo_login: Like(`%${buscar}%`) }
+      ];
+    }
+
     const [data, total] = await this.usuarioAuthRepository.findAndCount({
-      relations: ['usuario'],
-      select: ['id', 'email', 'estado_cuenta', 'ultimo_login', 'ultima_ip', 'dos_factores_activado', 'navegador_dispositivo', 'eliminado_en'], // Solo los campos que queremos mostrar
+      select: ['id', 'email', 'estado_cuenta', 'ultimo_login', 'ultima_ip', 'dos_factores_activado', 'navegador_dispositivo', 'eliminado_en'],
+      where: condicionWhere, 
       withDeleted: true,
       take: limite,
       skip: saltar,

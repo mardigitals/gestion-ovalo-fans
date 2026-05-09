@@ -61,9 +61,10 @@ export class UsuarioAuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin')
   @Get('all')
-  findAll(@Query('pagina') pagina: string) {
+  findAll(@Query('pagina') pagina: string, @Query('buscar') buscar: string) {
     const pageNumber = pagina ? Number(pagina) : 1; 
-    return this.usuarioAuthService.findAll(pageNumber);
+    // Le pasamos el parámetro buscar al servicio (si no viene, pasamos un string vacío)
+    return this.usuarioAuthService.findAll(pageNumber, 10, buscar || '');
   }
   
   @UseGuards(JwtAuthGuard, RolesGuard)
