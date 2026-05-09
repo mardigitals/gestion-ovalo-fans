@@ -124,7 +124,7 @@ export class UsuarioAuthService {
     await this.usuarioAuthRepository.save(usuario);
 
     // En producción, aquí pondrías la URL de tu frontend de React
-    const urlRecuperacion = `http://localhost:3000/reset-password?token=${token}`;
+    const urlRecuperacion = `http://localhost:5173/reset-password?token=${token}`;
     
     await this.mailService.enviarCorreo(
       email,
