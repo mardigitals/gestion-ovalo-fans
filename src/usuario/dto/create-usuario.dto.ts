@@ -34,21 +34,21 @@ export class CreateUsuarioDto {
 
   @IsString()
   @IsOptional()
+  @Matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, { message: 'El apellido solo debe contener letras.' })
   nacionalidad?: string;
 
   @IsString()
   @IsNotEmpty()
-  // Solo acepta números (podés sumarle el símbolo + si usás prefijos internacionales: /^[0-9+]+$/ )
   @Matches(/^[0-9]+$/, { message: 'El teléfono solo debe contener números, sin guiones ni espacios.' })
   telefono: string;
 
-  // ... (El resto de tus campos de domicilio quedan igual) ...
   @IsString()
   @IsNotEmpty()
   calle: string;
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[0-9]+$/, { message: 'El número de calle no debe contener letras.' })
   numero: string;
 
   @IsString()
@@ -61,6 +61,7 @@ export class CreateUsuarioDto {
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^[0-9]+$/, { message: 'El código postal solo debe contener números.' })
   cp: string;
 
   @IsString()
