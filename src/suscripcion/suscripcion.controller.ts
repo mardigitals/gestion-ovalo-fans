@@ -7,9 +7,10 @@ import { CreateSuscripcionDto } from './dto/create-suscripcion.dto';
 import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards'; 
 import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
 import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
+import { SuscripcionGuard } from 'src/usuario_auth/guards/suscripcion.guards'; 
 
 @Controller('suscripcion')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 export class SuscripcionController {
   constructor(private readonly suscripcionService: SuscripcionService) {}
 
@@ -43,41 +44,64 @@ export class SuscripcionController {
     return await this.suscripcionService.findOne(authId);
   }
 
+  @Get('verificar-pase')
+  async checkearParaReact(@Request() req) {
+    const usuarioId = req.user.userId;
+    
+    // 1. LLAMAMOS A TU JOYA (Sabe si la barrera se levanta o no):
+    const tieneAcceso = await this.suscripcionService.validarAccesoFan(usuarioId);
+    
+    // 2. BUSCAMOS EL MOTIVO (Para que el Patovica sepa qué cartel mostrar):
+    const estadoActual = await this.suscripcionService.obtenerEstadoParaFrontend(usuarioId);
+    
+    // 3. Le pasamos todo masticado a React
+    return { 
+        acceso_permitido: tieneAcceso,
+        estado_suscripcion: estadoActual
+    };
+  }
+
   // =========================================================
   // ENDPOINTS EXCLUSIVOS PARA STAFF (Admin y SuperAdmin)
   // =========================================================
 
   @Get('admin')
+  @UseGuards(RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
   async findAll() {
     return await this.suscripcionService.findAll();
   }
 
   @Get('admin/estado')
+  @UseGuards(RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
   async findByEstado(@Query('estado') estado: string) {
     return await this.suscripcionService.findByEstado(estado);
   }
 
   @Get('admin/dni')
+  @UseGuards(RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
   async findByDni(@Query('dni') dni: string) {
     return await this.suscripcionService.findByDni(dni);
   }
 
   @Get('admin/metricas/membresias')
+  @UseGuards(RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
   async getMetrics() {
     return await this.suscripcionService.countByMembresia();
   }
 
   @Get('admin/metricas/chicanas')
+  @UseGuards(RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
   async getMetricasChicanas() {
     return await this.suscripcionService.countByChicanaFavorita();
   }
 
   @Get('admin/metricas/ciudades')
+  @UseGuards(RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
   async getMetricasCiudades() {
     return await this.suscripcionService.countByCiudad();
@@ -85,6 +109,7 @@ export class SuscripcionController {
 
   // Activación manual/automática (Simulando Webhook o acción de Staff)
   @Patch('admin/activar/:id')
+  @UseGuards(RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
   async activate(@Param('id', ParseIntPipe) id: number) {
     return await this.suscripcionService.activarSuscripcion(id);

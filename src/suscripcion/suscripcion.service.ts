@@ -147,6 +147,26 @@ export class SuscripcionService {
     return await this.suscripcionRepository.save(suscripcion);
   }
 
+  /**
+   * 6. OBTENER ESTADO PARA EL FRONTEND
+   * Devuelve el string exacto del estado para manejar el PitStopOverlay
+   */
+  async obtenerEstadoParaFrontend(usuarioId: number): Promise<string> {
+    const perfil = await this.suscripcionRepository.manager.getRepository('PerfilFan').findOne({
+      where: { usuario_id: usuarioId }
+    });
+
+    if (!perfil) return 'Sin Suscripcion';
+
+    // Buscamos la última suscripción que haya intentado hacer
+    const ultimaSuscripcion = await this.suscripcionRepository.findOne({
+      where: { perfil_fan_id: perfil.id },
+      order: { id: 'DESC' }
+    });
+
+    return ultimaSuscripcion ? ultimaSuscripcion.estado : 'Sin Suscripcion';
+  }
+
   async findAll(pagina: number = 1, limite: number = 10) {
     const saltar = (pagina - 1) * limite;
 
@@ -261,4 +281,6 @@ export class SuscripcionService {
     // Si existe devolvemos el ID (1 o 2), si no, devolvemos 3 (Público)
     return suscripcion ? suscripcion.membresia_id : 3;
   }
+
+  
 }
