@@ -7,7 +7,6 @@ import { CreateSuscripcionDto } from './dto/create-suscripcion.dto';
 import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards'; 
 import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
 import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
-import { SuscripcionGuard } from 'src/usuario_auth/guards/suscripcion.guards'; 
 
 @Controller('suscripcion')
 @UseGuards(JwtAuthGuard)
