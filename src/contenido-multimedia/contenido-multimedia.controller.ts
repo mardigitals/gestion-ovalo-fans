@@ -37,7 +37,8 @@ export class ContenidoMultimediaController {
   }
 
   // 4. UPDATE: Solo el autor original
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Prensa') 
   @Patch(':id')
   async update(
     @Param('id') id: string, 
