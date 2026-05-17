@@ -5,12 +5,13 @@ import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
 import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
 import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
 import { GetUsosFilterDto } from './dto/get-usos-filter.dto';
+import { SuscripcionGuard } from 'src/usuario_auth/guards/suscripcion.guards';
 
 @Controller('uso-beneficio')
 export class UsoBeneficioController {
   constructor(private readonly usoBeneficioService: UsoBeneficioService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SuscripcionGuard)
   @Post()
   async registrar(@Body() createDto: CreateUsoBeneficioDto, @Req() req: any) {
     // Extraemos el ID del usuario del Token (inyectado por Passport en req.user)
