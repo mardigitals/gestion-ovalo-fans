@@ -18,7 +18,7 @@ export class CensuraVipInterceptor implements NestInterceptor {
         const request = context.switchToHttp().getRequest();
         const authHeader = request.headers.authorization;
         
-        let nivelUsuario = 3; // Arrancamos asumiendo que es Público
+        let nivelUsuario = 3; // Arrancamos asumiendo que es Público (Nivel 3)
 
         if (authHeader) {
             try {
@@ -26,9 +26,28 @@ export class CensuraVipInterceptor implements NestInterceptor {
                 const token = authHeader.split(' ')[1];
                 const payload = this.jwtService.verify(token); // Valida que no esté vencido
                 
-                // 2. Vamos a la Base de Datos (Token -> Fan -> Suscripcion -> Membresia)
-                nivelUsuario = await this.suscripcionService.obtenerNivelParaCensura(payload.userId);
-                
+                // Extraemos el rol del token (si existe)
+                const userRole = payload.rol?.toLowerCase() || '';
+
+                // ---  LÓGICA DE VALIDACIÓN ROL STAFF ---
+
+                // ¿ES DEL STAFF? ( Autoridades pasan gratis)
+                if (['superadmin', 'administrativo', 'prensa'].includes(userRole)) {
+                    nivelUsuario = 1; // Le damos nivel P1 para que vea TODO sin censura
+                } 
+                // ES UN FAN: Verificamos si tiene la cuota al día (o en 72hs de gracia)
+                else {
+                    const tieneAcceso = await this.suscripcionService.validarAccesoFan(payload.userId);
+
+                    if (tieneAcceso) {
+                        // 3. Solo si tiene acceso válido, buscamos si es P1 o P2
+                        nivelUsuario = await this.suscripcionService.obtenerNivelParaCensura(payload.userId);
+                    } else {
+                        // Si debe plata o está vencido, se queda en Nivel 3 (Censurado)
+                        nivelUsuario = 3; 
+                    }
+                }
+
             } catch (error) {
                 // Si el token es inválido o expiró, no hacemos nada, queda en Nivel 3.
             }
