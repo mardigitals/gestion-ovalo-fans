@@ -49,6 +49,7 @@ export class ContenidoMultimediaController {
 
   // 5. DELETE: El autor o el SuperAdmin
   @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Prensa') 
   @Delete(':id')
   async remove(@Param('id') id: string, @Request() req) {
     // Pasamos el ID del contenido, el ID del usuario y su rol
