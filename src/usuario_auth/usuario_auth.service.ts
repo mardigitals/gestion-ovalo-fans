@@ -273,42 +273,43 @@ export class UsuarioAuthService {
       rol: rol.toLowerCase(), // Normalizado para el frontend
     };
 
-    const authRecord = await this.usuarioAuthRepository.findOne({ where: { id: userId } });
-    if (authRecord) {
-      data.email = authRecord.email;
-    }
-      
-    const usuarioRecord = await this.usuarioRepository.findOne({ where: { usuario_auth_id: userId } });
+    // 1. 🔥 PRIMERO: Buscamos al usuario (Porque el userId del token es el de la tabla 'usuario')
+    const usuarioRecord = await this.usuarioRepository.findOne({ where: { id: userId } });
+    
     if (usuarioRecord) {
       data.usuario = usuarioRecord;
+
+      // 2. 🔥 SEGUNDO: Con la llave de auth que tiene el usuario, vamos a buscar su EMAIL
+      const authRecord = await this.usuarioAuthRepository.findOne({ 
+        where: { id: usuarioRecord.usuario_auth_id } 
+      });
+      if (authRecord) {
+        data.email = authRecord.email;
+      }
     }
 
     if (rol.toLowerCase() === 'fan') {
-      // 3. Buscamos el perfil del Fan
-      const idParaBuscarPerfil = usuarioRecord ? usuarioRecord.id : userId;
+      // 3. Buscamos el perfil del Fan directo con el userId
       const perfil = await this.perfilFanRepository.findOne({
-        where: { usuario_id: idParaBuscarPerfil }
+        where: { usuario_id: userId }
       });
 
       data.perfil_fan = perfil;
       data.nombre = perfil?.alias || usuarioRecord?.nombre || 'Fan';
       
-      // 4. Por defecto, si NUNCA tuvo suscripción en su vida (recién registrado)
+      // 4. Por defecto, si NUNCA tuvo suscripción
       data.nivelFan = 'Inactivo'; 
       data.estadoSuscripcion = 'Sin Suscripción'; 
 
-      // 5. Buscamos su ÚLTIMA suscripción (sin importar si está Activa, Vencida o Pendiente)
+      // 5. Buscamos su ÚLTIMA suscripción
       if (perfil) {
         const ultimaSuscripcion = await this.suscripcionRepository.findOne({
           where: { perfil_fan_id: perfil.id },
-          order: { id: 'DESC' } // <-- Traemos la última factura/suscripción generada
+          order: { id: 'DESC' }
         });
 
-        // 6. Si encontramos un historial, le respetamos su chapa (P1, P2 o P3)
         if (ultimaSuscripcion) {
           data.nivelFan = `P${ultimaSuscripcion.membresia_id}`; 
-          
-          // Opcional: mandamos también el estado real por si el frontend lo necesita
           data.estadoSuscripcion = ultimaSuscripcion.estado; 
         }
       }
@@ -316,11 +317,11 @@ export class UsuarioAuthService {
     } else {
       // --- LÓGICA DE STAFF ---
       const staff = await this.perfilStaffRepository.findOne({
-        where: { usuario_id: usuarioRecord ? usuarioRecord.id : userId },
+        where: { usuario_id: userId },
         relations: ['rolStaff']
       });
       data.rol = staff?.rolStaff?.nombre_rol || rol; 
-      data.perfil_staff = staff; // También lo mandamos por las dudas
+      data.perfil_staff = staff; 
     }
 
     return data;
