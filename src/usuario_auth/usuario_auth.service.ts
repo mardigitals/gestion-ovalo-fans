@@ -273,41 +273,54 @@ export class UsuarioAuthService {
       rol: rol.toLowerCase(), // Normalizado para el frontend
     };
 
+    const authRecord = await this.usuarioAuthRepository.findOne({ where: { id: userId } });
+    if (authRecord) {
+      data.email = authRecord.email;
+    }
+      
+    const usuarioRecord = await this.usuarioRepository.findOne({ where: { usuario_auth_id: userId } });
+    if (usuarioRecord) {
+      data.usuario = usuarioRecord;
+    }
+
     if (rol.toLowerCase() === 'fan') {
-      // 1. Buscamos el perfil del Fan
+      // 3. Buscamos el perfil del Fan
+      const idParaBuscarPerfil = usuarioRecord ? usuarioRecord.id : userId;
       const perfil = await this.perfilFanRepository.findOne({
-        where: { usuario_id: userId }
+        where: { usuario_id: idParaBuscarPerfil }
       });
 
-      // 2. Por defecto, si no tiene perfil o no tiene suscripción activa, es el nivel base (Bronce) 
-      data.nivelFan = 'P3';
-      data.nombre = perfil?.alias || 'Socio';
+      data.perfil_fan = perfil;
+      data.nombre = perfil?.alias || usuarioRecord?.nombre || 'Fan';
+      
+      // 4. Por defecto, si NUNCA tuvo suscripción en su vida (recién registrado)
+      data.nivelFan = 'Inactivo'; 
+      data.estadoSuscripcion = 'Sin Suscripción'; 
 
-      // 3. Si existe el perfil, buscamos su suscripción ACTIVA
+      // 5. Buscamos su ÚLTIMA suscripción (sin importar si está Activa, Vencida o Pendiente)
       if (perfil) {
-        const suscripcionActiva = await this.suscripcionRepository.findOne({
-          where: { 
-            perfil_fan_id: perfil.id,
-            estado: 'Activo' // <-- ACÁ ESTÁ LA MAGIA DE SEGURIDAD
-          },
-          order: { id: 'DESC' } // Por si hay varias, traemos la última
+        const ultimaSuscripcion = await this.suscripcionRepository.findOne({
+          where: { perfil_fan_id: perfil.id },
+          order: { id: 'DESC' } // <-- Traemos la última factura/suscripción generada
         });
 
-        // 4. Si encontramos una suscripción pagada y activa, le asignamos ese nivel
-        if (suscripcionActiva) {
-          // Si tu DB guarda 1, 2 o 3, lo transformamos a P1, P2, P3 para que el frontend lo entienda perfecto
-          data.nivelFan = `P${suscripcionActiva.membresia_id}`; 
+        // 6. Si encontramos un historial, le respetamos su chapa (P1, P2 o P3)
+        if (ultimaSuscripcion) {
+          data.nivelFan = `P${ultimaSuscripcion.membresia_id}`; 
+          
+          // Opcional: mandamos también el estado real por si el frontend lo necesita
+          data.estadoSuscripcion = ultimaSuscripcion.estado; 
         }
       }
 
     } else {
       // --- LÓGICA DE STAFF ---
       const staff = await this.perfilStaffRepository.findOne({
-        where: { usuario_id: userId },
+        where: { usuario_id: usuarioRecord ? usuarioRecord.id : userId },
         relations: ['rolStaff']
       });
-      // Si no tiene rol definido, cae en el rol por defecto que le pasaste
       data.rol = staff?.rolStaff?.nombre_rol || rol; 
+      data.perfil_staff = staff; // También lo mandamos por las dudas
     }
 
     return data;
