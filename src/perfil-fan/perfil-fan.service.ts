@@ -80,13 +80,19 @@ export class PerfilFanService {
   }
 
   async update(id: number, updatePerfilFanDto: UpdatePerfilFanDto, usuarioId: number) {
+    // 1. Buscamos directo a la BD (evitamos usar this.findOne para que no nos tire el 403)
+    const perfil = await this.perfilFanRepository.findOne({ where: { id } });
 
-    const perfil = await this.findOne(id, usuarioId, 'Fan'); 
-
-    if (Number(perfil.usuario_id) !== Number(usuarioId)) {
-      throw new BadRequestException('No tenés permisos para modificar este perfil.');
+    if (!perfil) {
+      throw new NotFoundException('Perfil no encontrado');
     }
 
+    // 2. Tu validación con Number() que es a prueba de balas
+    if (Number(perfil.usuario_id) !== Number(usuarioId)) {
+        throw new BadRequestException('No tenés permisos para modificar este perfil.');
+    }
+
+    // 3. Guardamos los cambios
     const perfilActualizado = this.perfilFanRepository.merge(perfil, updatePerfilFanDto);
     return await this.perfilFanRepository.save(perfilActualizado);
   }

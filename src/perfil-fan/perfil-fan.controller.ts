@@ -42,6 +42,8 @@ export class PerfilFanController {
     @Body() updatePerfilFanDto: UpdatePerfilFanDto, 
     @Request() req
   ) {
-    return this.perfilFanService.update(+id, updatePerfilFanDto, req.user.userId);
+    // Usamos esto por si el token guarda "id" en vez de "userId"
+    const userId = req.user.id || req.user.userId; 
+    return this.perfilFanService.update(+id, updatePerfilFanDto, userId);
   }
 }
