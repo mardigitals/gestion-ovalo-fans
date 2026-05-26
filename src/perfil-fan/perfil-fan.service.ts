@@ -96,4 +96,19 @@ export class PerfilFanService {
     const perfilActualizado = this.perfilFanRepository.merge(perfil, updatePerfilFanDto);
     return await this.perfilFanRepository.save(perfilActualizado);
   }
+
+  async actualizarAvatar(id: number, avatarUrl: string) {
+    const perfil = await this.perfilFanRepository.findOne({ where: { id } });
+    if (!perfil) {
+      throw new NotFoundException('Perfil no encontrado');
+    }
+
+    perfil.avatar = avatarUrl;
+    await this.perfilFanRepository.save(perfil);
+
+    return { 
+      message: 'Avatar actualizado', 
+      url: avatarUrl 
+    };
+  }
 }
