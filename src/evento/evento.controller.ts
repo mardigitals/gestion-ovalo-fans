@@ -51,4 +51,10 @@ export class EventoController {
   remove(@Param('id') id: string) {
     return this.eventoService.remove(+id);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('tc-disponibles')
+  async obtenerTcFuturos() {
+    return await this.eventoService.obtenerEventosTCDisponibles();
+  }
 }

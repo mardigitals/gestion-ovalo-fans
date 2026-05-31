@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, Between } from 'typeorm';
 import { CreateEventoDto } from './dto/create-evento.dto';
 import { UpdateEventoDto } from './dto/update-evento.dto';
 import { Evento } from './entities/evento.entity';
@@ -60,5 +60,25 @@ export class EventoService {
     await this.eventoRepository.softDelete(id); 
     
     return { mensaje: `El evento #${id} fue cancelado correctamente.` };
+  }
+
+  async obtenerEventosTCDisponibles() {
+    const hoy = new Date();
+    // Clavamos la hora a las 00:00 para que incluya el evento si es hoy mismo
+    const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()); 
+    // Último minuto del año en curso
+    const finAnio = new Date(hoy.getFullYear(), 11, 31, 23, 59, 59);
+
+    return await this.eventoRepository.find({
+      where: {
+        tipo_evento: 'Carrera',
+        categoria_carrera: 'TC',
+        fecha_evento: Between(inicioHoy, finAnio)
+      },
+      order: {
+        fecha_evento: 'ASC' // Ordenamos de la fecha más próxima a la más lejana
+      },
+      select: ['id', 'titulo', 'fecha_evento'] // Solo traemos lo justo y necesario para el Frontend
+    });
   }
 }
