@@ -23,6 +23,12 @@ export class EventoController {
     return this.eventoService.findAll();
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('tc-disponibles')
+  async obtenerTcFuturos() {
+    return await this.eventoService.obtenerEventosTCDisponibles();
+  }
+
   @UseGuards(JwtAuthGuard,RolesGuard)
   @Roles('SuperAdmin', 'Administrativo', 'Prensa')
   @Get('buscar')
@@ -52,9 +58,4 @@ export class EventoController {
     return this.eventoService.remove(+id);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('tc-disponibles')
-  async obtenerTcFuturos() {
-    return await this.eventoService.obtenerEventosTCDisponibles();
-  }
 }
