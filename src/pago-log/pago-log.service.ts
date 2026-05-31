@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { PagoLog } from './entities/pago-log.entity';
 import { SuscripcionService } from 'src/suscripcion/suscripcion.service';
 import { MercadoPagoConfig, Payment, Preference} from 'mercadopago';
+import { UsuarioAuthService } from 'src/usuario_auth/usuario_auth.service';
 
 @Injectable()
 export class PagoLogService {
@@ -14,6 +15,7 @@ export class PagoLogService {
     @InjectRepository(PagoLog)
     private readonly pagoLogRepository: Repository<PagoLog>,
     private readonly suscripcionService: SuscripcionService,
+    private readonly usuarioAuthService: UsuarioAuthService,
   ) {
     // INICIALIZAMOS MERCADO PAGO
     this.mpClient = new MercadoPagoConfig({ 
@@ -176,4 +178,20 @@ export class PagoLogService {
       throw error;
     }
   }
+
+  async obtenerMisUltimosPagos(userId: number) {
+    return await this.pagoLogRepository.createQueryBuilder('pago')
+      // 1. Unimos el pago con la suscripción
+      .innerJoin('pago.suscripcion', 'suscripcion')
+      // 2. Unimos la suscripción con el perfilFan
+      .innerJoin('suscripcion.perfilFan', 'perfilFan')
+      // 3. 🔥 EL FILTRO: Como PerfilFan ya tiene el usuario_id directo, filtramos acá
+      .where('perfilFan.usuario_id = :userId', { userId: userId })
+      // Ordenamos del más nuevo al más viejo
+      .orderBy('pago.fecha_pago', 'DESC')
+      // Solo el Top 5
+      .take(5)
+      .getMany();
+  }
+
 }

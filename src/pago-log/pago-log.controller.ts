@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, HttpStatus, BadRequestException, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, Res, HttpStatus, Req, BadRequestException, UseGuards, Request } from '@nestjs/common';
 import type { Response } from 'express';
 import { PagoLogService } from './pago-log.service';
 import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
@@ -51,5 +51,21 @@ export class PagoLogController {
     } catch (error) {
       console.error('[Webhook Error] Falló el procesamiento del pago:', (error as Error).message);
     }
+  }
+
+ @UseGuards(JwtAuthGuard)
+  @Get('mis-pagos')
+  async obtenerMisPagos(@Request() req) {
+    // 1. Agarramos los datos básicos que nos dejó el token (¡IGUAL QUE EN PERFIL!)
+    const userId = req.user.id || req.user.userId;
+
+    // 2. Llamamos a nuestro Service
+    const pagos = await this.pagoLogService.obtenerMisUltimosPagos(userId);
+    
+    // 3. SENSOR DE DIAGNÓSTICO
+    console.log(`Buscando pagos para el Usuario ID: ${userId}`);
+    console.log('Pagos encontrados en BD:', pagos);
+    
+    return pagos;
   }
 }

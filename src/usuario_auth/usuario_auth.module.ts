@@ -26,5 +26,6 @@ import { PerfilStaff } from 'src/perfil-staff/entities/perfil-staff.entity';
   ],
   controllers: [UsuarioAuthController],
   providers: [UsuarioAuthService, JwtStrategy],
+  exports: [UsuarioAuthService]
 })
 export class UsuarioAuthModule {}
