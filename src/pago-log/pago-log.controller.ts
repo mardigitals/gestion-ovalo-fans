@@ -61,11 +61,7 @@ export class PagoLogController {
 
     // 2. Llamamos a nuestro Service
     const pagos = await this.pagoLogService.obtenerMisUltimosPagos(userId);
-    
-    // 3. SENSOR DE DIAGNÓSTICO
-    console.log(`Buscando pagos para el Usuario ID: ${userId}`);
-    console.log('Pagos encontrados en BD:', pagos);
-    
+
     return pagos;
   }
 }
