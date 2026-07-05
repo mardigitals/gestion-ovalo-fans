@@ -122,18 +122,24 @@ export class PagoLogService {
   }
 
   async ingresosAnualesPorMes() {
-    const data = await this.pagoLogRepository.query(`
-      SELECT 
-        MONTH(fecha_pago) as mes,
-        SUM(monto) as total_ingresos,
-        COUNT(*) as cantidad_pagos
-      FROM pago_log
-      WHERE YEAR(fecha_pago) = YEAR(NOW())
-      GROUP BY MONTH(fecha_pago)
-      ORDER BY mes ASC;
-    `);
+    try {
+      const data = await this.pagoLogRepository
+        .createQueryBuilder('pago')
+        .select('MONTH(pago.fecha_pago)', 'mes')
+        .addSelect('SUM(pago.monto)', 'total_ingresos')
+        .addSelect('COUNT(pago.id)', 'cantidad_pagos')
+        .where('YEAR(pago.fecha_pago) = YEAR(NOW())')
+        .groupBy('MONTH(pago.fecha_pago)')
+        .orderBy('mes', 'ASC')
+        .getRawMany(); // getRawMany es clave acá para agrupar datos matemáticos
 
-    return data; 
+      return data; 
+      
+    } catch (error) {
+      // Si llega a fallar, ahora la terminal te va a decir el motivo exacto
+      this.logger.error(`🚨 Error al calcular los ingresos mensuales:`, error);
+      throw error;
+    }
   }
 
   /**

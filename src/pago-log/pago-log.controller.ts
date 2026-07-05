@@ -12,7 +12,7 @@ export class PagoLogController {
   constructor(private readonly pagoLogService: PagoLogService) {}
   
   @Get('mensuales')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
   async sumaPagos() {
     return await this.pagoLogService.ingresosAnualesPorMes();
