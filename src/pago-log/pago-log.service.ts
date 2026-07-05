@@ -121,6 +121,21 @@ export class PagoLogService {
     };
   }
 
+  async ingresosAnualesPorMes() {
+    const data = await this.pagoLogRepository.query(`
+      SELECT 
+        MONTH(fecha_pago) as mes,
+        SUM(monto) as total_ingresos,
+        COUNT(*) as cantidad_pagos
+      FROM pago_log
+      WHERE YEAR(fecha_pago) = YEAR(NOW())
+      GROUP BY MONTH(fecha_pago)
+      ORDER BY mes ASC;
+    `);
+
+    return data; 
+  }
+
   /**
    * GENERAR LINK DE PAGO (Checkout Pro de Mercado Pago)
    */

@@ -3,12 +3,20 @@ import type { Response } from 'express';
 import { PagoLogService } from './pago-log.service';
 import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
 import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
+import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
 
 
 
 @Controller('pagos')
 export class PagoLogController {
   constructor(private readonly pagoLogService: PagoLogService) {}
+  
+  @Get('mensuales')
+  @UseGuards(RolesGuard)
+  @Roles('SuperAdmin', 'Administrativo')
+  async sumaPagos() {
+    return await this.pagoLogService.ingresosAnualesPorMes();
+  }
 
   /**
    * EL FRONTEND LLAMA ACÁ PARA OBTENER EL LINK DE PAGO
@@ -53,7 +61,7 @@ export class PagoLogController {
     }
   }
 
- @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('mis-pagos')
   async obtenerMisPagos(@Request() req) {
     // 1. Agarramos los datos básicos que nos dejó el token (¡IGUAL QUE EN PERFIL!)
