@@ -11,6 +11,10 @@ export class CreateEventoDto {
     @IsDateString({}, { message: 'La fecha debe tener un formato válido (YYYY-MM-DD)' })
     fecha_evento: string;
 
+    @IsOptional()
+    @IsDateString({}, { message: 'La fecha debe tener un formato válido (YYYY-MM-DD)' })
+    fecha_evento_fin?: string;
+
     @IsNotEmpty({ message: 'El tipo de evento es obligatorio' })
     @IsEnum(['Carrera', 'Recital', 'Pruebas','Otros'], {
         message: 'El tipo de evento debe ser Carrera, Recital, Pruebas o Otros'

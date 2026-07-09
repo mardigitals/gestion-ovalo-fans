@@ -13,6 +13,9 @@ export class Evento {
   @Column({ type: 'datetime'})
   fecha_evento: Date;
 
+  @Column({ type: 'datetime', nullable: true })
+  fecha_evento_fin: Date;
+
   @Column({ type: 'enum', enum: ['Carrera', 'Recital', 'Pruebas','Otros'] })
   tipo_evento: string;
 
