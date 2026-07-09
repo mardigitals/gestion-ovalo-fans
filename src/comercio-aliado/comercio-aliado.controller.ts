@@ -43,8 +43,7 @@ export class ComercioAliadoController {
     return this.comercioAliadoService.buscarPorNombre(nombre_comercio);
   }
 
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('SuperAdmin','Administrativo') 
+  @UseGuards(JwtAuthGuard) 
   @Get()
   findAll() {
     return this.comercioAliadoService.findAll();
