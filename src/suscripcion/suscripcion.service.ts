@@ -224,6 +224,18 @@ export class SuscripcionService {
     return resultado;
   }
 
+  async countBySuscripcion() {
+    // Usamos un query builder para contar eficientemente agrupado por estado
+    return await this.suscripcionRepository
+      .createQueryBuilder('suscripcion')
+      .select('suscripcion.estado', 'estado')
+      .addSelect('COUNT(*)', 'cantidad')
+      .groupBy('suscripcion.estado')
+      .getRawMany();
+
+    // Esto devuelve algo como: [{ estado: 'Activo', cantidad: '5' }, { estado: 'Pendiente', cantidad: '10' }, ...]
+  }
+
   async countByMembresia() {
     return await this.suscripcionRepository
       .createQueryBuilder('suscripcion')

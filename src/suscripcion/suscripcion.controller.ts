@@ -85,6 +85,13 @@ export class SuscripcionController {
     return await this.suscripcionService.findByDni(dni);
   }
 
+  @Get('admin/metricas/suscripciones')
+  @UseGuards(RolesGuard)
+  @Roles('SuperAdmin', 'Administrativo')
+  async getMetricasSuscripciones() {
+    return await this.suscripcionService.countBySuscripcion();
+  }
+
   @Get('admin/metricas/membresias')
   @UseGuards(RolesGuard)
   @Roles('SuperAdmin', 'Administrativo')
