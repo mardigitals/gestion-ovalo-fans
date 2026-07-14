@@ -113,6 +113,14 @@ export class SuscripcionController {
     return await this.suscripcionService.countByCiudad();
   }
 
+  @Get('admin/metricas/provincias')
+  @UseGuards(RolesGuard)
+  @Roles('SuperAdmin', 'Administrativo')
+  async getMetricasProvincias() {
+    return await this.suscripcionService.countByProvincia();
+  }
+
+
   // Activación manual/automática (Simulando Webhook o acción de Staff)
   @Patch('admin/activar/:id')
   @UseGuards(RolesGuard)

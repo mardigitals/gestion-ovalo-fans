@@ -268,6 +268,18 @@ export class SuscripcionService {
       .getRawMany();
   }
 
+  async countByProvincia() {
+    return await this.suscripcionRepository.manager
+      .getRepository('PerfilFan') 
+      .createQueryBuilder('perfil')
+      .innerJoin('perfil.usuario', 'usuario') 
+      .select('usuario.provincia', 'provincia')
+      .addSelect('COUNT(perfil.id)', 'cantidad')
+      .groupBy('usuario.provincia')
+      .orderBy('cantidad', 'DESC')
+      .getRawMany();
+  }
+
   async obtenerPorId(id: number) {
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { id },
