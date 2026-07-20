@@ -1,4 +1,5 @@
 import { IsString, IsNotEmpty, IsOptional, IsDateString, IsEnum, IsInt, Matches } from 'class-validator';
+import { IsAdult } from '../decorators/is-adult.decorators';
 
 export class CreateUsuarioDto {
   
@@ -26,6 +27,7 @@ export class CreateUsuarioDto {
 
   @IsDateString()
   @IsNotEmpty()
+  @IsAdult({ message: 'No cumples con la edad mínima de 18 años para registrarte.' }) 
   fecha_nacimiento: string;
 
   @IsEnum(['M', 'F', 'Prefiero no decirlo'])
@@ -34,7 +36,7 @@ export class CreateUsuarioDto {
 
   @IsString()
   @IsOptional()
-  @Matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, { message: 'El apellido solo debe contener letras.' })
+  @Matches(/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/, { message: 'La nacionalidad solo debe contener letras.' })
   nacionalidad?: string;
 
   @IsString()
