@@ -543,4 +543,12 @@ export class UsoBeneficioService {
 
     return await this.usoBeneficioRepository.save(uso);
   }
+
+  obtenerUsosPorUsuario(usuarioId: number) {
+    return this.usoBeneficioRepository.find({
+      where: { suscripcion: { perfilFan: { usuario_id: usuarioId } } },
+      relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario', 'evento'],
+      order: { fecha_solicitud: 'DESC' }
+    });
+  }
 }

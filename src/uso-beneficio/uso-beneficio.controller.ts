@@ -20,17 +20,11 @@ export class UsoBeneficioController {
     return await this.usoBeneficioService.registrarUso(createDto, usuarioAuthId);
   }
 
-  /**
-   * NOTA: Más adelante agregaremos aquí los métodos para el Staff:
-   * - GET /uso-beneficio (Listar solicitudes para gestión)
-   * - PATCH /uso-beneficio/:id (Aprobar/Rechazar)
-   */
-
   // Trae todas las solicitudes 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Administrativo', 'SuperAdmin')
   @Get()
- async listarSolicitudes(@Query() filtros: GetUsosFilterDto) {
+  async listarSolicitudes(@Query() filtros: GetUsosFilterDto) {
     return await this.usoBeneficioService.obtenerTodosParaGestion(filtros);
   }
 
@@ -43,6 +37,14 @@ export class UsoBeneficioController {
     @Body('notas_staff') notasStaff?: string,
   ) {
     return await this.usoBeneficioService.cambiarEstado(+id, estado, notasStaff);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('mis-usos')
+  async misBeneficios(@Req() req: any) {
+    const usuarioAuthId = req.user.userId;
+    // Asumo que tenés un método similar en tu service. Si no, crealo para que busque por usuario.
+    return await this.usoBeneficioService.obtenerUsosPorUsuario(usuarioAuthId); 
   }
 }
 
