@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { join } from 'path';
 import * as express from 'express';
 
@@ -13,6 +13,23 @@ async function bootstrap() {
       whitelist: true, // Ignora cualquier campo que no esté en el DTO
       forbidNonWhitelisted: true, // Lanza un error si envían campos que no están en el DTO
       transform: true, // Convierte los datos de los parámetros a los tipos definidos en el DTO
+      exceptionFactory: (errors) => {
+      const erroresFormateados = {};
+      
+      errors.forEach((err) => {
+        // err.property es el nombre del campo (ej: 'fecha_nacimiento')
+        // Object.values(err.constraints)[0] extrae el primer mensaje de error que falló
+        if (err.constraints) {
+            erroresFormateados[err.property] = Object.values(err.constraints)[0];
+        }
+      });
+
+      // Lanzamos la excepción con la estructura exacta que el frontend necesita
+      return new BadRequestException({
+        message: 'Error de validación en el formulario',
+        errores: erroresFormateados,
+      });
+    },
     }),
   );
 
