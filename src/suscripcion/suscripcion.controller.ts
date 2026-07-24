@@ -80,7 +80,7 @@ export class SuscripcionController {
 
   @Get('admin/dni')
   @UseGuards(RolesGuard)
-  @Roles('SuperAdmin', 'Administrativo')
+  @Roles('SuperAdmin', 'Administrativo', 'Comercio')
   async findByDni(@Query('dni') dni: string) {
     return await this.suscripcionService.findByDni(dni);
   }
