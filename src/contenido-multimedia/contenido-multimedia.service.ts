@@ -65,10 +65,10 @@ export class ContenidoMultimediaService {
     return resultados.map(item => ({
       ...item,
       autor: {
-        nombre: item.autor.usuario.nombre,
-        apellido: item.autor.usuario.apellido,
-        area: item.autor.area,
-        cargo: item.autor.cargo
+       nombre: item.autor?.usuario?.nombre || 'Desconocido',
+        apellido: item.autor?.usuario?.apellido || 'Desconocido',
+        area: item.autor?.area || 'Desconocido',
+        cargo: item.autor?.cargo || 'Desconocido'
       }
     }));
   }
@@ -90,10 +90,10 @@ export class ContenidoMultimediaService {
       ...contenido,
       vistas: contenido.vistas + 1,
       autor: {
-        nombre: contenido.autor.usuario.nombre,
-        apellido: contenido.autor.usuario.apellido,
-        area: contenido.autor.area,
-        cargo: contenido.autor.cargo
+        nombre: contenido.autor?.usuario?.nombre || 'Desconocido',
+        apellido: contenido.autor?.usuario?.apellido || 'Desconocido',
+        area: contenido.autor?.area || 'Desconocido',
+        cargo: contenido.autor?.cargo || 'Desconocido'
       }
     };
   }
@@ -117,10 +117,10 @@ export class ContenidoMultimediaService {
     return {
       ...guardado,
       autor: {
-        nombre: guardado.autor.usuario.nombre,
-        apellido: guardado.autor.usuario.apellido,
-        area: guardado.autor.area,
-        cargo: guardado.autor.cargo
+        nombre: guardado.autor?.usuario?.nombre || 'Desconocido',
+        apellido: guardado.autor?.usuario?.apellido || 'Desconocido',
+        area: guardado.autor?.area || 'Desconocido',
+        cargo: guardado.autor?.cargo || 'Desconocido'
       }
     };
   }
