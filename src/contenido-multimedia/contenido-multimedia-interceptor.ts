@@ -67,34 +67,26 @@ export class CensuraVipInterceptor implements NestInterceptor {
     private aplicarEstrategiaCensura(item: any, membresiaIdUsuario: number | null) {
         let mostrarContenido = false;
 
-        // Evaluamos qué nivel pide el contenido para dejarnos verlo
+       // Evaluamos qué nivel pide el contenido
         switch (item.nivel_acceso_requerido) {
-        
+            
             case null:
-            case 3:
-                // Si el contenido es null o 3, es PÚBLICO. 
-                // Lo ve cualquiera (incluso los que no están logueados).
+            case 0:
+                // Si en la BD es NULL o es 0, es PÚBLICO. 
+                // Lo ve cualquiera (incluso los no logueados o P3).
                 mostrarContenido = true;
-                break;
-
-            case 2:
-                // Si el contenido es 2 (Exclusivo P2), 
-                // solo lo ven los que tienen membresía 1 (P1) o 2 (P2).
-                if (membresiaIdUsuario === 1 || membresiaIdUsuario === 2) {
-                mostrarContenido = true;
-                }
                 break;
 
             case 1:
-                // Si el contenido es 1 (VIP P1), 
-                // SOLAMENTE lo ven los que tienen membresía 1.
-                if (membresiaIdUsuario === 1) {
-                mostrarContenido = true;
+                // Si el contenido pide nivel 1 (Exclusivo VIP), 
+                // solo lo ven los que tienen membresía 1 (P1) o 2 (P2).
+                if (membresiaIdUsuario === 1 || membresiaIdUsuario === 2) {
+                    mostrarContenido = true;
                 }
                 break;
 
             default:
-                // Por seguridad, si llega un número raro, bloqueamos.
+                // Por seguridad, si llega un número raro (ej: 5, 99), bloqueamos.
                 mostrarContenido = false;
                 break;
         }
