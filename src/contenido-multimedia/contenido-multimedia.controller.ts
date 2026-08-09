@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UploadedFile, ForbiddenException } from '@nestjs/common';
 import { ContenidoMultimediaService } from './contenido-multimedia.service';
 import { CreateContenidoMultimediaDto } from './dto/create-contenido-multimedia.dto';
 import { UpdateContenidoMultimediaDto } from './dto/update-contenido-multimedia.dto';
@@ -7,7 +7,7 @@ import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
 import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
 import { UseInterceptors } from '@nestjs/common';
 import { CensuraVipInterceptor } from './contenido-multimedia-interceptor';
-
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('contenido-multimedia')
 export class ContenidoMultimediaController {
@@ -17,9 +17,11 @@ export class ContenidoMultimediaController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin', 'Prensa')
   @Post()
-  create(@Body() createDto: CreateContenidoMultimediaDto, @Request() req) {
+  @UseInterceptors(FileInterceptor('archivo')) // Atrapa el archivo físico que viene con la llave 'archivo'
+  create(@Body() createDto: CreateContenidoMultimediaDto, @Request() req, @UploadedFile() file?: Express.Multer.File ) {
     // El 'sub' o 'userId' viene del JWT
-    return this.contenidoMultimediaService.create(createDto, req.user.userId);
+    
+    return this.contenidoMultimediaService.create(createDto, req.user.userId, file);
   }
 
   // 2. GET ALL: Público (Cualquiera que ingrese)
@@ -40,12 +42,15 @@ export class ContenidoMultimediaController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin', 'Prensa') 
   @Patch(':id')
+  @UseInterceptors(FileInterceptor('archivo'))
   async update(
     @Param('id') id: string, 
     @Body() updateDto: UpdateContenidoMultimediaDto,
-    @Request() req
+    @Request() req,
+    @UploadedFile() file?: Express.Multer.File
+    
   ) {
-    return this.contenidoMultimediaService.update(+id, updateDto, req.user.userId);
+    return this.contenidoMultimediaService.update(+id, updateDto, req.user.userId, file);
   }
 
   // 5. DELETE: El autor o el SuperAdmin

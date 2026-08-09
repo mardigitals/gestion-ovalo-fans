@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ContenidoMultimedia } from './entities/contenido-multimedia.entity';
 import { PerfilStaff } from 'src/perfil-staff/entities/perfil-staff.entity';
 import { SuscripcionModule } from 'src/suscripcion/suscripcion.module';
+import { CloudinaryService } from './cloudinary.service';
 
 @Module({
   imports: [
@@ -12,6 +13,6 @@ import { SuscripcionModule } from 'src/suscripcion/suscripcion.module';
     SuscripcionModule
   ],
   controllers: [ContenidoMultimediaController],
-  providers: [ContenidoMultimediaService],
+  providers: [ContenidoMultimediaService, CloudinaryService],
 })
 export class ContenidoMultimediaModule {}
