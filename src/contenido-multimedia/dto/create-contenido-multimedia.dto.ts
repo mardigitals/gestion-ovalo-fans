@@ -9,6 +9,8 @@ import {
   IsBoolean, 
   MaxLength 
 } from 'class-validator';
+import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 
 export class CreateContenidoMultimediaDto {
   
@@ -22,17 +24,19 @@ export class CreateContenidoMultimediaDto {
   })
   tipo: string;
 
+  @IsOptional()
   @IsUrl({}, { message: 'Debe proporcionar una URL válida para el recurso' })
-  @IsNotEmpty({ message: 'La URL del recurso es obligatoria' })
-  url_recurso: string;
+  url_recurso?: string;
 
+  @Type(() => Number)
   @IsInt({ message: 'El nivel de acceso debe ser un número entero' })
   @IsOptional()
   @Min(0, { message: 'El nivel de acceso no puede ser negativo' })
   nivel_acceso_requerido?: number;
 
+  @IsOptional() 
+  @Transform(({ value }) => value === 'true' || value === '1' || value === true)
   @IsBoolean({ message: 'es_destacado debe ser un valor booleano' })
-  @IsOptional()
   es_destacado?: boolean;
 
 }

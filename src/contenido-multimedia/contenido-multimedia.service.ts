@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AutoEncrypter, Repository } from 'typeorm';
 import { ContenidoMultimedia } from './entities/contenido-multimedia.entity';
@@ -21,6 +21,10 @@ export class ContenidoMultimediaService {
 
   // 1. CREATE 
   async create(createDto: CreateContenidoMultimediaDto, userId: number, file?: Express.Multer.File) {
+    
+    if (!createDto.url_recurso && !file) {
+      throw new BadRequestException('Debes subir un archivo físico o proporcionar un enlace válido.');
+    }
     const staff = await this.staffRepo.findOne({ 
       where: { usuario_id: userId },
       relations: ['usuario', 'rolStaff'] 
