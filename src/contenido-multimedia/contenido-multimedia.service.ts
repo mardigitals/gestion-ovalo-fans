@@ -19,12 +19,14 @@ export class ContenidoMultimediaService {
     private readonly cloudinaryService: CloudinaryService,
   ) {}
 
-  // 1. CREATE 
-  async create(createDto: CreateContenidoMultimediaDto, userId: number, file?: Express.Multer.File) {
+ // 1. CREATE (Adaptado para Múltiples Archivos / Carpetas)
+  async create(createDto: CreateContenidoMultimediaDto, userId: number, files?: Array<Express.Multer.File>) {
     
-    if (!createDto.url_recurso && !file) {
-      throw new BadRequestException('Debes subir un archivo físico o proporcionar un enlace válido.');
+    // Validamos que haya un link O que haya al menos un archivo en el array
+    if (!createDto.url_recurso && (!files || files.length === 0)) {
+      throw new BadRequestException('Debes subir al menos un archivo físico o proporcionar un enlace válido.');
     }
+    
     const staff = await this.staffRepo.findOne({ 
       where: { usuario_id: userId },
       relations: ['usuario', 'rolStaff'] 
@@ -40,34 +42,63 @@ export class ContenidoMultimediaService {
       throw new ForbiddenException(`Tu rol (${staff.rolStaff.nombre_rol}) no tiene permisos para publicar contenido.`);
     }
 
-    // LÓGICA DE CLOUDINARY
-    let urlDefinitiva = createDto.url_recurso;
-    if (file) {
-      const uploadResult = await this.cloudinaryService.uploadFile(file);
-      urlDefinitiva = uploadResult.secure_url; // Guardamos el link oficial de Cloudinary
+    // Como ahora podemos guardar 1 o más registros a la vez, preparamos un Array de respuesta
+    const respuestas: any[] = [];
+
+    // CASO A: VIENEN ARCHIVOS FÍSICOS (1 o varios)
+    if (files && files.length > 0) {
+      for (const file of files) {
+        // LÓGICA DE CLOUDINARY por cada archivo
+        const uploadResult = await this.cloudinaryService.uploadFile(file);
+        
+        const nuevo = this.contenidoRepo.create({
+          ...createDto,
+          // Si suben muchos, usamos el nombre del archivo original sin la extensión (.jpg)
+          // Si suben 1 solo, respetamos el título que escribieron en el input
+          titulo: files.length > 1 ? file.originalname.split('.')[0] : createDto.titulo,
+          url_recurso: uploadResult.secure_url, // Guardamos el link oficial de Cloudinary
+          autor: staff 
+        });
+
+        const guardado = await this.contenidoRepo.save(nuevo);
+
+        // TU MAPEO DE RESPUESTA ORIGINAL (Lo pusheamos al array)
+        respuestas.push({
+          ...guardado,
+          autor: {
+            id: staff.id,
+            area: staff.area,
+            cargo: staff.cargo
+          }
+        });
+      }
+    } 
+    // CASO B: ES SOLO UN ENLACE (Noticia o Google Drive externo)
+    else {
+      const nuevo = this.contenidoRepo.create({
+        ...createDto,
+        url_recurso: createDto.url_recurso,
+        autor: staff 
+      });
+
+      const guardado = await this.contenidoRepo.save(nuevo);
+
+      // TU MAPEO DE RESPUESTA ORIGINAL
+      respuestas.push({
+        ...guardado,
+        autor: {
+          id: staff.id,
+          area: staff.area,
+          cargo: staff.cargo
+        }
+      });
     }
 
-    const nuevo = this.contenidoRepo.create({
-      ...createDto,
-      url_recurso: urlDefinitiva, // Sobrescribimos con la URL real
-      autor: staff 
-    });
-
-    const guardado = await this.contenidoRepo.save(nuevo);
-
-    // TU MAPEO  DE RESPUESTA
-    return {
-      ...guardado,
-      autor: {
-        id: staff.id,
-        area: staff.area,
-        cargo: staff.cargo
-      }
-    };
+    // Devolvemos el array con todos los registros procesados
+    return respuestas;
   }
-
   // 2. FIND ALL con mapeo de lista
-  async findAll(pagina: number = 1, limite: number = 10) {
+  async findAll(pagina: number = 1, limite: number = 500) {
     const saltar = (pagina - 1) * limite; // Cuántos registros me salteo
 
     const resultados = await this.contenidoRepo.find({
@@ -76,7 +107,7 @@ export class ContenidoMultimediaService {
         es_destacado: 'DESC',      
         fecha_publicacion: 'DESC'  
       },
-      take: limite, // Traigo máximo 10
+      take: limite, // Traigo máx
       skip: saltar  // Salteando los anteriores
     });
 
@@ -170,5 +201,15 @@ export class ContenidoMultimediaService {
 
     await this.contenidoRepo.remove(contenido);
     return { message: `Contenido con ID ${id} eliminado correctamente por ID N°:${userId} del Staff` };
+  }
+
+  // 6. SUMAR VISTA
+  async sumarVista(id: number) {
+    const contenido = await this.contenidoRepo.findOneBy({ id });
+    if (contenido) {
+      contenido.vistas += 1;
+      return await this.contenidoRepo.save(contenido);
+    }
+    return null;
   }
 }

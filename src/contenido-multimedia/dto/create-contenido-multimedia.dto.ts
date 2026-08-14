@@ -15,9 +15,9 @@ import { Transform } from 'class-transformer';
 export class CreateContenidoMultimediaDto {
   
   @IsString({ message: 'El título debe ser una cadena de texto' })
-  @IsNotEmpty({ message: 'El título es obligatorio' })
+  @IsOptional()
   @MaxLength(150, { message: 'El título no puede superar los 150 caracteres' })
-  titulo: string;
+  titulo?: string;
 
   @IsEnum(['noticia', 'video', 'imagen'], { 
     message: 'El tipo debe ser noticia, video o imagen' 
@@ -27,6 +27,10 @@ export class CreateContenidoMultimediaDto {
   @IsOptional()
   @IsUrl({}, { message: 'Debe proporcionar una URL válida para el recurso' })
   url_recurso?: string;
+
+  @IsOptional()
+  @IsString()
+  carpeta?: string;
 
   @Type(() => Number)
   @IsInt({ message: 'El nivel de acceso debe ser un número entero' })

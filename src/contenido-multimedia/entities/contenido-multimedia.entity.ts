@@ -15,6 +15,9 @@ export class ContenidoMultimedia {
   @Column({ length: 255 })
   url_recurso: string;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  carpeta: string;
+
   @Column({ type: 'int', nullable: true })
   nivel_acceso_requerido: number | null;
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UploadedFile, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, UploadedFile, UploadedFiles, ForbiddenException } from '@nestjs/common';
 import { ContenidoMultimediaService } from './contenido-multimedia.service';
 import { CreateContenidoMultimediaDto } from './dto/create-contenido-multimedia.dto';
 import { UpdateContenidoMultimediaDto } from './dto/update-contenido-multimedia.dto';
@@ -7,7 +7,7 @@ import { RolesGuard } from 'src/usuario_auth/guards/roles.guards';
 import { Roles } from 'src/usuario_auth/decorators/roles.decorators';
 import { UseInterceptors } from '@nestjs/common';
 import { CensuraVipInterceptor } from './contenido-multimedia-interceptor';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('contenido-multimedia')
 export class ContenidoMultimediaController {
@@ -17,11 +17,11 @@ export class ContenidoMultimediaController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin', 'Prensa')
   @Post()
-  @UseInterceptors(FileInterceptor('archivo')) // Atrapa el archivo físico que viene con la llave 'archivo'
-  create(@Body() createDto: CreateContenidoMultimediaDto, @Request() req, @UploadedFile() file?: Express.Multer.File ) {
+  @UseInterceptors(FilesInterceptor('archivos', 50)) // Atrapa el archivo físico que viene con la llave 'archivos'
+  create(@Body() createDto: CreateContenidoMultimediaDto, @Request() req, @UploadedFiles() files?: Array<Express.Multer.File> ) {
     // El 'sub' o 'userId' viene del JWT
     
-    return this.contenidoMultimediaService.create(createDto, req.user.userId, file);
+    return this.contenidoMultimediaService.create(createDto, req.user.userId, files);
   }
 
   // 2. GET ALL: Público (Cualquiera que ingrese)
@@ -60,5 +60,12 @@ export class ContenidoMultimediaController {
   async remove(@Param('id') id: string, @Request() req) {
     // Pasamos el ID del contenido, el ID del usuario y su rol
     return this.contenidoMultimediaService.remove(+id, req.user.userId, req.user.rol);
+  }
+
+
+  // 6. SUMAR VISTA (Ruta pública o para usuarios logueados)
+  @Patch(':id/vista')
+  async sumarVista(@Param('id') id: string) {
+    return this.contenidoMultimediaService.sumarVista(+id);
   }
 }
