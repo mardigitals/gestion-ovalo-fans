@@ -43,4 +43,12 @@ export class CreateContenidoMultimediaDto {
   @IsBoolean({ message: 'es_destacado debe ser un valor booleano' })
   es_destacado?: boolean;
 
+  @IsOptional()
+  @IsString()
+  descripcion_breve?: string;
+
+  @IsOptional()
+  @IsString()
+  cuerpo?: string;
+
 }

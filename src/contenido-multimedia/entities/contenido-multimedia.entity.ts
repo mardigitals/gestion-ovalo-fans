@@ -30,6 +30,12 @@ export class ContenidoMultimedia {
   @Column({ type: 'boolean', default: false })
   es_destacado: boolean;
 
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  descripcion_breve: string;
+
+  @Column({ type: 'longtext', nullable: true })
+  cuerpo: string;
+
   // Relación con PerfilStaff 
   @ManyToOne(() => PerfilStaff, (staff) => staff.contenidos)
   @JoinColumn({ name: 'autor_staff_id' })
