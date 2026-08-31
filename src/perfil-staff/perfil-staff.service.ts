@@ -43,15 +43,17 @@ export class PerfilStaffService {
     const authGuardado = await this.usuarioAuthRepository.save(nuevoAuth);
 
     // 4. PASO B: Crear registro de Datos Personales en Usuario
-    // Completamos con datos temporales porque tu DB los exige obligatoriamente
+    // Generamos un DNI temporal único usando "TMP-" seguido de los últimos 8 números del timestamp actual
+    const dniTemporal = `TMP-${Date.now().toString().slice(-8)}`;
+
     const nuevoUsuario = this.usuarioRepository.create({
-      usuario_auth_id: authGuardado.id, // Vinculamos el ID de auth recién creado
+      usuario_auth_id: authGuardado.id, 
       nombre,
       apellido,
-      dni: '00000000', // Placeholder
-      fecha_nacimiento: new Date('1990-01-01'), // Placeholder
-      genero: 'Prefiero no decirlo', // Valor válido de tu ENUM
-      telefono: '0000000000', // Placeholder
+      dni: dniTemporal, // 🔥 ACÁ ESTÁ LA MAGIA, ahora cada comodín es único
+      fecha_nacimiento: new Date('1990-01-01'), 
+      genero: 'Prefiero no decirlo', 
+      telefono: '0000000000', // El teléfono no tiene restricción UNIQUE, así que este no pincha
       calle: 'A Completar',
       numero: '0',
       cp: '0000',
@@ -93,24 +95,32 @@ export class PerfilStaffService {
 
 
   async update(id: number, updatePerfilStaffDto: UpdatePerfilStaffDto) {
-  // 1. Buscamos el perfil existente (esto ya valida que exista con findOne)
-  const staff = await this.findOne(id);
+    // 1. Verificamos que exista (lanza NotFoundException si no)
+    await this.findOne(id);
 
-  try {
-    // 2. Mezclamos los datos del DTO sobre la entidad encontrada
-    const staffActualizado = Object.assign(staff, updatePerfilStaffDto);
-    
-    // 3. Guardamos los cambios
-    return await this.perfilStaffRepository.save(staffActualizado);
-  } catch (error: any) {
-    // Manejo de error de FK por si el rol_staff_id no existe
-    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
-      throw new BadRequestException('El rol de staff proporcionado no es válido.');
+    try {
+      // 2. Extraemos solo los campos que pertenecen a la tabla perfil_staff
+      // Esto evita errores SQL si el DTO trae el email o el nombre de casualidad
+      const { rol_staff_id, area, cargo } = updatePerfilStaffDto;
+
+      // 3. Ejecutamos el UPDATE directo en la base de datos
+      await this.perfilStaffRepository.update(id, {
+        rol_staff_id,
+        area,
+        cargo
+      });
+      
+      // 4. Devolvemos el registro ya actualizado con sus nombres de rol nuevos
+      return await this.findOne(id);
+
+    } catch (error: any) {
+      if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+        throw new BadRequestException('El rol de staff proporcionado no es válido.');
+      }
+      throw new InternalServerErrorException('Error inesperado al actualizar el perfil de staff.');
     }
-    throw new InternalServerErrorException('Error inesperado al actualizar el perfil de staff.');
   }
-}
-
+  
   async findAll() {
     return await this.perfilStaffRepository.find({
       relations: ['usuario', 'rolStaff'], // Para que en la presentación se vean los nombres y no solo IDs
