@@ -5,34 +5,92 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PerfilStaff } from './entities/perfil-staff.entity';
 import { Usuario } from 'src/usuario/entities/usuario.entity';
-
-
+import * as bcrypt from 'bcrypt';
+import { MailService } from 'src/mail/mail.service'; // Ajustá la ruta según la estructura de tu proyecto
+import { UsuarioAuth } from 'src/usuario_auth/entities/usuario_auth.entity';
 
 @Injectable()
 export class PerfilStaffService {
-
   constructor(
     @InjectRepository(PerfilStaff)
     private readonly perfilStaffRepository: Repository<PerfilStaff>,
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
+    @InjectRepository(UsuarioAuth) // 🔥 AGREGAMOS EL REPO DE AUTH
+    private readonly usuarioAuthRepository: Repository<UsuarioAuth>,
+    private readonly mailService: MailService, 
   ) {}
 
   async create(createPerfilStaffDto: CreatePerfilStaffDto) {
-    // 1. Creamos la instancia del perfil
-    const nuevoStaff = this.perfilStaffRepository.create(createPerfilStaffDto);
-    
-    // 2. Guardamos en la tabla perfil_staff
+    const { nombre, apellido, email, rol_staff_id, area, cargo } = createPerfilStaffDto;
+
+    // 1. Validar que el email no exista previamente en UsuarioAuth
+    const authExistente = await this.usuarioAuthRepository.findOne({ where: { email } });
+    if (authExistente) {
+      throw new BadRequestException('Ya existe una cuenta registrada con este correo electrónico.');
+    }
+
+    // 2. Generar contraseña temporal y hashearla (El campo en tu DB se llama contrasena_hash)
+    const passwordTemporal = Math.random().toString(36).slice(-8);
+    const passwordHasheada = await bcrypt.hash(passwordTemporal, 10);
+
+    // 3. PASO A: Crear registro de Login en UsuarioAuth
+    const nuevoAuth = this.usuarioAuthRepository.create({
+      email,
+      contrasena_hash: passwordHasheada,
+      estado_cuenta: 'Activo', // Lo dejamos activo para que pueda entrar de una
+    });
+    const authGuardado = await this.usuarioAuthRepository.save(nuevoAuth);
+
+    // 4. PASO B: Crear registro de Datos Personales en Usuario
+    // Completamos con datos temporales porque tu DB los exige obligatoriamente
+    const nuevoUsuario = this.usuarioRepository.create({
+      usuario_auth_id: authGuardado.id, // Vinculamos el ID de auth recién creado
+      nombre,
+      apellido,
+      dni: '00000000', // Placeholder
+      fecha_nacimiento: new Date('1990-01-01'), // Placeholder
+      genero: 'Prefiero no decirlo', // Valor válido de tu ENUM
+      telefono: '0000000000', // Placeholder
+      calle: 'A Completar',
+      numero: '0',
+      cp: '0000',
+      ciudad: 'Rafaela',
+      provincia: 'Santa Fe',
+      nacionalidad: 'Argentina',
+      pais: 'Argentina'
+    });
+    const usuarioGuardado = await this.usuarioRepository.save(nuevoUsuario);
+
+    // 5. PASO C: Crear el Perfil de Staff
+    const nuevoStaff = this.perfilStaffRepository.create({
+      usuario_id: usuarioGuardado.id, // Vinculamos el ID del usuario
+      rol_staff_id,
+      area,
+      cargo,
+      fecha_ingreso: new Date(),
+    });
     const staffGuardado = await this.perfilStaffRepository.save(nuevoStaff);
 
-    // 3. Lógica para la presentación: 
-    // Actualizamos el rol del usuario base a 'staff' para que el Guard lo reconozca
-    await this.usuarioRepository.update(createPerfilStaffDto.usuario_id, {
-       // Aquí podrías setear un campo 'esStaff' o similar si lo tenés
-    });
+    // 6. ¡Magia del Correo!
+    const asunto = '¡Bienvenido al equipo de Staff de Óvalo Fans!';
+    const texto = `Hola ${nombre},\n\n`
+      + `Has sido dado de alta oficialmente en el sistema de gestión del Autódromo Ciudad de Rafaela.\n\n`
+      + `Tus credenciales de acceso son:\n`
+      + `Usuario/Email: ${email}\n`
+      + `Contraseña temporal: ${passwordTemporal}\n\n`
+      + `Por razones de seguridad, te pedimos que al ingresar por primera vez vayas a tu perfil para cambiar esta contraseña y completar tus datos personales (DNI, Dirección, Teléfono).\n\n`
+      + `¡Nos vemos en los boxes!`;
+
+    try {
+      await this.mailService.enviarCorreo(email, asunto, texto);
+    } catch (error) {
+      console.error('Alerta: El staff fue creado pero falló el envío de correo:', error);
+    }
 
     return staffGuardado;
   }
+
 
   async update(id: number, updatePerfilStaffDto: UpdatePerfilStaffDto) {
   // 1. Buscamos el perfil existente (esto ya valida que exista con findOne)
