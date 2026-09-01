@@ -26,7 +26,7 @@ export class MembresiaService {
   }
   
   async findAll() {
-    return await this.membresiaRepository.find();
+    return await this.membresiaRepository.find({ withDeleted: true });
   }
 
   async findOne(id: number) {
