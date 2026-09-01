@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Res, HttpStatus, Req, BadRequestException, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Get, Body, Res, HttpStatus, Req, Param, BadRequestException, UseGuards, Request } from '@nestjs/common';
 import type { Response } from 'express';
 import { PagoLogService } from './pago-log.service';
 import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
@@ -16,6 +16,14 @@ export class PagoLogController {
   @Roles('SuperAdmin', 'Administrativo')
   async sumaPagos() {
     return await this.pagoLogService.ingresosAnualesPorMes();
+  }
+
+   // --- NUEVO ENDPOINT PARA EL PANEL ADMINISTRATIVO ---
+  @Get('suscripcion/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Administrativo')
+  async obtenerPagosPorSuscripcionAdmin(@Param('id') id: string) {
+    return await this.pagoLogService.findBySuscripcion(Number(id));
   }
 
   /**
@@ -72,4 +80,5 @@ export class PagoLogController {
 
     return pagos;
   }
+
 }

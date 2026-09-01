@@ -171,7 +171,7 @@ export class SuscripcionService {
     const saltar = (pagina - 1) * limite;
 
     const [data, total] = await this.suscripcionRepository.findAndCount({
-      relations: ['perfilFan', 'membresia'],
+      relations: ['perfilFan', 'membresia', 'perfilFan.usuario'],
       take: limite,
       skip: saltar,
       order: { id: 'DESC' }
