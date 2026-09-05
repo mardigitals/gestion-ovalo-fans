@@ -18,19 +18,15 @@ export class SuscripcionService {
 
   /**
    * 1. INICIAR SUSCRIPCIÓN (Estado: Pendiente)
-   * Se dispara cuando el fan elige un plan en el frontend.
    */
   async crearIntencion(dto: CreateSuscripcionDto, usuarioId: number) {
-    // 1. Buscamos el perfil fan asociado al usuario logueado (el ID 8 del debugger)
     const perfil = await this.suscripcionRepository.manager.getRepository('PerfilFan').findOne({
-      where: { usuario_id:  usuarioId }
+      where: { usuario_id: usuarioId }
     });
 
-    if (!perfil) {
-      throw new NotFoundException('No se encontró un perfil de Fan para este usuario.');
-    }
+    if (!perfil) throw new NotFoundException('No se encontró un perfil de Fan para este usuario.');
 
-    // 2. Validar que no tenga otra suscripción ya activa
+    // Validar que no tenga otra suscripción ya activa
     const activa = await this.suscripcionRepository.findOne({
       where: { perfil_fan_id: perfil.id, estado: 'Activo' }
     });
@@ -39,10 +35,20 @@ export class SuscripcionService {
       throw new BadRequestException('Ya posees una suscripción activa.');
     }
 
-    // 3. Creamos la suscripción vinculándola automáticamente al ID del perfil encontrado
-    const nueva = this.suscripcionRepository.create({
+    // 🔥 EL BLINDAJE ANTI-SPAM: Buscamos si ya tiene una intención pendiente
+    const pendienteExistente = await this.suscripcionRepository.findOne({
+      where: { perfil_fan_id: perfil.id, estado: 'Pendiente' }
+    });
 
-      membresia_id: dto.membresia_id, // Pasamos solo lo necesario del DTO
+    if (pendienteExistente) {
+      // Si ya tiene una pendiente, simplemente le actualizamos el plan que eligió ahora
+      pendienteExistente.membresia_id = dto.membresia_id;
+      return await this.suscripcionRepository.save(pendienteExistente);
+    }
+
+    // Solo si no tenía nada pendiente, creamos una nueva
+    const nueva = this.suscripcionRepository.create({
+      membresia_id: dto.membresia_id,
       perfil_fan_id: perfil.id,
       estado: 'Pendiente',      
     });
@@ -51,34 +57,43 @@ export class SuscripcionService {
   }
 
   /**
-   * 2. ACTIVACIÓN AUTOMÁTICA (Estado: Activo)
-   * Se dispara al recibir confirmación de pago (Mercado Pago).
+   * 2. ACTIVACIÓN AUTOMÁTICA
    */
   async activarSuscripcion(id: number) {
-    const suscripcion = await this.suscripcionRepository.findOne({
+    const suscripcionNueva = await this.suscripcionRepository.findOne({
       where: { id },
-      relations: ['membresia']
+      relations: ['membresia', 'perfilFan']
     });
 
-    if (!suscripcion) throw new NotFoundException('La suscripción no existe.');
+    if (!suscripcionNueva) throw new NotFoundException('La suscripción no existe.');
 
+    // 🔥 BLINDAJE ANTI-CLONES: Buscamos si el usuario ya tenía otra activa y la matamos
+    const suscripcionesViejas = await this.suscripcionRepository.find({
+      where: { 
+        perfil_fan_id: suscripcionNueva.perfil_fan_id, 
+        estado: 'Activo' 
+      }
+    });
+
+    for (const vieja of suscripcionesViejas) {
+      if (vieja.id !== suscripcionNueva.id) {
+        vieja.estado = 'Cancelado'; // Damos de baja la anterior (Upgrade/Reemplazo)
+        await this.suscripcionRepository.save(vieja);
+      }
+    }
+
+    // Procedemos a activar la nueva
     const ahora = new Date();
     const fechaFin = new Date();
 
-    if (!['Pendiente', 'Vencido'].includes(suscripcion.estado)) {
-      throw new BadRequestException(
-        `No se puede activar. La suscripción actual está en estado: ${suscripcion.estado}.`
-      );
-    }
-    
-    if (suscripcion.membresia.nombre.toLowerCase().includes('anual')) {
+    if (suscripcionNueva.membresia.nombre.toLowerCase().includes('anual')) {
       fechaFin.setFullYear(ahora.getFullYear() + 1);
     } else {
       fechaFin.setDate(ahora.getDate() + 30);
     }
 
     return await this.suscripcionRepository.save({
-      ...suscripcion,
+      ...suscripcionNueva,
       estado: 'Activo',
       fecha_inicio: ahora,
       fecha_fin: fechaFin,
