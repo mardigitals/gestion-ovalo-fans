@@ -484,7 +484,7 @@ export class UsoBeneficioService {
 
     const [solicitudes, total] = await this.usoBeneficioRepository.findAndCount({
       where: whereRules,
-      relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario', 'evento'],
+      relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario', 'suscripcion.perfilFan.usuario.auth', 'evento'],
       order: { fecha_solicitud: 'DESC' }, 
       take: limite, // 👈 Paginación
       skip: saltar   // 👈 Paginación
@@ -504,7 +504,8 @@ export class UsoBeneficioService {
         nombre_completo: `${uso.suscripcion.perfilFan.usuario.nombre} ${uso.suscripcion.perfilFan.usuario.apellido}`,
         dni: uso.suscripcion.perfilFan.usuario.dni,
         telefono: uso.suscripcion.perfilFan.usuario.telefono,
-        alias: uso.suscripcion.perfilFan.alias
+        alias: uso.suscripcion.perfilFan.alias,
+        email: uso.suscripcion.perfilFan.usuario.auth?.email
       },
       // Si hay un evento asociado, mandamos solo lo básico
       evento: uso.evento ? {
@@ -523,25 +524,83 @@ export class UsoBeneficioService {
   }
   
 
-  async cambiarEstado(id: number, nuevoEstado: string, notas?: string) {
-    const uso = await this.usoBeneficioRepository.findOne({ where: { id } });
+ async cambiarEstado(id: number, nuevoEstado: string, notas?: string, contactoCoordinador?: string, fechaUso?: string) {
+    //  Traemos las relaciones profundas para poder sacar el email del usuario
+    const uso = await this.usoBeneficioRepository.findOne({ 
+      where: { id },
+      relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario', 'suscripcion.perfilFan.usuario.auth']
+    });
     
     if (!uso) {
       throw new NotFoundException(`La solicitud #${id} no existe.`);
     }
 
     uso.estado = nuevoEstado;
+    if (notas) uso.notas_staff = notas;
+    if (contactoCoordinador) uso.contacto_coordinador = contactoCoordinador;
     
-    if (notas) {
-      uso.notas_staff = notas;
+   if (nuevoEstado === 'Completado') {
+      if (fechaUso) {
+        uso.fecha_uso = new Date(fechaUso); // La que elige el admin en el modal
+      } else if (!uso.fecha_uso) {
+        uso.fecha_uso = new Date(); // Respaldo para automáticos
+      }
     }
 
-  
-    if (nuevoEstado === 'Completado' && !uso.fecha_uso) {
-      uso.fecha_uso = new Date();
+    const guardado = await this.usoBeneficioRepository.save(uso);
+
+    const emailFan = uso.suscripcion.perfilFan.usuario.auth?.email;
+
+    if (emailFan) {
+      const nombreBeneficio = uso.tipo_beneficio.replace('_', ' ');
+
+      if (nuevoEstado === 'Completado') {
+        const mensajeExtra = notas ? `\n\n📌 Instrucciones del Staff: ${notas}` : '';
+        const mensajeContacto = contactoCoordinador ? `\n📞 Coordinador asignado: ${contactoCoordinador}` : '';
+        
+        // 📅 Formateamos la fecha si existe para ponerla en el mail
+        const fechaMail = uso.fecha_uso.toLocaleString('es-AR', { dateStyle: 'full', timeStyle: 'short' });
+        const mensajeFecha = `\n📅 Fecha y hora programada: ${fechaMail}`;
+        
+        await this.mailService.enviarCorreo(
+          emailFan,
+          `✅ Solicitud Aprobada: ${nombreBeneficio}`,
+          `¡Hola! Tu solicitud para el beneficio de ${nombreBeneficio} fue aprobada y coordinada.${mensajeFecha}${mensajeExtra}${mensajeContacto}\n\nPodés ver los detalles en tu Billetera de Óvalo Fans.`
+        );
+      } else if (nuevoEstado === 'Rechazado') {
+        await this.mailService.enviarCorreo(
+          emailFan,
+          `❌ Actualización sobre tu solicitud: ${nombreBeneficio}`,
+          `Hola. Tu solicitud no pudo ser procesada en esta ocasión.\nMotivo del Staff: ${notas || 'No cumple con los requisitos actuales.'}`
+        );
+      }
     }
 
-    return await this.usoBeneficioRepository.save(uso);
+    return guardado;
+  }
+
+  // NUEVO MÉTODO PARA LAS CARDS DEL FRONTEND
+ async obtenerMetricasManuales() {
+    // 1. Agregamos TODAS las categorías que queremos contar
+    const categoriasTotales = [
+      'VISITAS_GUIADAS', 'SALA_PRENSA', 'PACECAR_RESCATE', 'REGALO_SUPERFAN', 'PLACA_RECTA',
+      'FAST_ACCESS', 'VIP_BOXES', 'DESC_PRUEBAS', 'DESC_RECITALES', 'DESC_CARRERAS'
+    ];
+    
+    const metricas = await this.usoBeneficioRepository
+      .createQueryBuilder('uso')
+      .select('uso.tipo_beneficio', 'tipo')
+      .addSelect('COUNT(uso.id)', 'cantidad')
+      .where('uso.estado = :estado', { estado: 'Completado' })
+      .andWhere('uso.tipo_beneficio IN (:...tipos)', { tipos: categoriasTotales })
+      .groupBy('uso.tipo_beneficio')
+      .getRawMany();
+
+    return categoriasTotales.reduce((acc, tipo) => {
+      const encontrada = metricas.find(m => m.tipo === tipo);
+      acc[tipo] = encontrada ? Number(encontrada.cantidad) : 0;
+      return acc;
+    }, {});
   }
 
   obtenerUsosPorUsuario(usuarioId: number) {

@@ -35,16 +35,25 @@ export class UsoBeneficioController {
     @Param('id') id: string,
     @Body('estado') estado: string,
     @Body('notas_staff') notasStaff?: string,
+    @Body('contacto_coordinador') contactoCoordinador?: string, 
+    @Body('fecha_uso') fechaUso?: string,
   ) {
-    return await this.usoBeneficioService.cambiarEstado(+id, estado, notasStaff);
+    return await this.usoBeneficioService.cambiarEstado(+id, estado, notasStaff, contactoCoordinador); 
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('mis-usos')
   async misBeneficios(@Req() req: any) {
     const usuarioAuthId = req.user.userId;
-    // Asumo que tenés un método similar en tu service. Si no, crealo para que busque por usuario.
+    
     return await this.usoBeneficioService.obtenerUsosPorUsuario(usuarioAuthId); 
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Administrativo', 'SuperAdmin')
+  @Get('metricas') 
+  async obtenerMetricas() {
+    return await this.usoBeneficioService.obtenerMetricasManuales();
   }
 }
 
