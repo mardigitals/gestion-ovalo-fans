@@ -38,7 +38,7 @@ export class UsoBeneficioController {
     @Body('contacto_coordinador') contactoCoordinador?: string, 
     @Body('fecha_uso') fechaUso?: string,
   ) {
-    return await this.usoBeneficioService.cambiarEstado(+id, estado, notasStaff, contactoCoordinador); 
+    return await this.usoBeneficioService.cambiarEstado(+id, estado, notasStaff, contactoCoordinador, fechaUso); 
   }
 
   @UseGuards(JwtAuthGuard)
