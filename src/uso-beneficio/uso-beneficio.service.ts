@@ -43,7 +43,6 @@ export class UsoBeneficioService {
 
     switch (dto.tipo_beneficio) {
       case 'FAST_ACCESS':
-      case 'VIP_BOXES':
       case 'DESC_PRUEBAS':
       case 'DESC_RECITALES':
       case 'DESC_CARRERAS':
@@ -55,7 +54,7 @@ export class UsoBeneficioService {
         categoriaBeneficioInicial = 'Automático';
         break;
 
-      // PLACA, REGALO, PACECAR, SALA_PRENSA y VISITAS_GUIADAS
+      //VIP BOXES, PLACA, REGALO, PACECAR, SALA_PRENSA y VISITAS_GUIADAS
       // Caen en el por defecto (Pendiente / Solicitado)
       //DESC_COMERCIO no usa endpoint de uso, es un descuento que el comercio aplica directamente al validar la suscripción del fan en findSuscripcionbyDni, así que tampoco va a caer acá.
     }
