@@ -59,12 +59,19 @@ export class UsoBeneficioService {
       //DESC_COMERCIO no usa endpoint de uso, es un descuento que el comercio aplica directamente al validar la suscripción del fan en findSuscripcionbyDni, así que tampoco va a caer acá.
     }
 
+    let codigoQrUnico: string | undefined = undefined;
+    
+    if (categoriaBeneficioInicial === 'Instantáneo QR') {
+        codigoQrUnico = `${dto.tipo_beneficio}-${suscripcion.id}-${Date.now().toString().slice(-6)}`;
+      }
+
     // PRIMERO GUARDAMOS
     const usoGrabado = await this.usoBeneficioRepository.save({
       ...dto,
       suscripcion_id: suscripcion.id,
       estado: estadoInicial,
       categoria_beneficio: categoriaBeneficioInicial,
+      codigo_qr: codigoQrUnico, // <-- ACÁ GUARDAMOS EL CÓDIGO
       fecha_solicitud: new Date(),
       fecha_uso: estadoInicial === 'Completado' ? new Date() : undefined,
     });
@@ -608,5 +615,27 @@ export class UsoBeneficioService {
       relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario', 'evento'],
       order: { fecha_solicitud: 'DESC' }
     });
+  }
+
+  async validarQrEscaneado(codigo: string) {
+    const uso = await this.usoBeneficioRepository.findOne({
+      where: { codigo_qr: codigo },
+      relations: [
+        'suscripcion', 
+        'suscripcion.perfilFan', 
+        'suscripcion.perfilFan.usuario',
+        'evento'
+      ]
+    });
+
+    if (!uso) {
+      throw new NotFoundException('El voucher escaneado es inválido o no existe en el sistema.');
+    }
+
+    // Como es "Camino Pro", si quisieras que el código "se queme" o cambie de estado, 
+    // podrías hacer un update acá (Ej: uso.estado = 'Usado').
+    // Por ahora solo lo validamos y devolvemos la info al frontend.
+
+    return uso;
   }
 }

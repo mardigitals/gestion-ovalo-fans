@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Req, Patch, Query, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Req, Patch, Query, Param, BadRequestException } from '@nestjs/common';
 import { UsoBeneficioService } from './uso-beneficio.service';
 import { CreateUsoBeneficioDto } from './dto/create-uso-beneficio.dto';
 import { JwtAuthGuard } from 'src/usuario_auth/guards/jwt.auth.guards';
@@ -54,6 +54,16 @@ export class UsoBeneficioController {
   @Get('metricas') 
   async obtenerMetricas() {
     return await this.usoBeneficioService.obtenerMetricasManuales();
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Administrativo', 'SuperAdmin', 'Comercio') // Ojo acá: poné los roles exactos que vayan a escanear
+  @Get('validar-qr')
+  async validarQrEndpoint(@Query('codigo') codigo: string) {
+    if (!codigo) {
+      throw new BadRequestException('Debe proporcionar un código QR para validar.');
+    }
+    return await this.usoBeneficioService.validarQrEscaneado(codigo);
   }
 }
 

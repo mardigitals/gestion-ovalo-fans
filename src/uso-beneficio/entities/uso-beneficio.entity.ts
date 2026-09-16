@@ -21,6 +21,9 @@ export class UsoBeneficio {
   @Column({ type: 'enum', enum: ['Pendiente','Aprobado','Rechazado','Completado'], default: 'Pendiente' })
   estado: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true, unique: true })
+  codigo_qr: string;
+
   @CreateDateColumn()
   fecha_solicitud: Date;
 
