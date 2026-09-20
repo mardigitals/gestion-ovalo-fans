@@ -180,7 +180,7 @@ export class PagoLogService {
             failure: 'http://localhost:5173/pago/error',
             pending: 'http://localhost:5173/pago/pendiente'
           },
-          // auto_return: 'approved',
+          // auto_return: 'approved', descomentar al subir a produccion
           notification_url:'https://introductory-randa-hyaloid.ngrok-free.dev/pagos/webhook' // Cambialo por tu URL pública + ruta del webhook en tu controller
         }
       });
