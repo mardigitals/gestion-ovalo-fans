@@ -1,25 +1,26 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreatePerfilFanDto } from './dto/create-perfil-fan.dto';
 import { UpdatePerfilFanDto } from './dto/update-perfil-fan.dto';
 import { PerfilFan } from './entities/perfil-fan.entity';
-import { ForbiddenException } from '@nestjs/common/exceptions';
+import { UsuarioAuth } from '../usuario_auth/entities/usuario_auth.entity';
 
 @Injectable()
 export class PerfilFanService {
   constructor(
     @InjectRepository(PerfilFan)
     private readonly perfilFanRepository: Repository<PerfilFan>,
+    
+    // Inyectamos el repo de auth para poder cambiar el estado
+    @InjectRepository(UsuarioAuth)
+    private readonly usuarioAuthRepository: Repository<UsuarioAuth>,
   ) {}
 
-  
-  async create(createPerfilFanDto: CreatePerfilFanDto, usuarioId: number) {
-
+  async create(createPerfilFanDto: CreatePerfilFanDto, usuarioId: number, usuarioAuthId: number) {
     if (!usuarioId) {
       throw new BadRequestException('No se pudo obtener el ID del usuario desde el token.');
     }
-
 
     const perfilExistente = await this.perfilFanRepository.findOne({ 
       where: { usuario_id: usuarioId } 
@@ -29,11 +30,20 @@ export class PerfilFanService {
       throw new BadRequestException('Este usuario ya tiene un perfil de fan creado.');
     }
 
-
+    // 1. Creamos y guardamos el perfil del fan
     const nuevoPerfil = this.perfilFanRepository.create(createPerfilFanDto);
     nuevoPerfil.usuario_id = usuarioId; 
+    const perfilGuardado = await this.perfilFanRepository.save(nuevoPerfil);
 
-    return await this.perfilFanRepository.save(nuevoPerfil);
+    // 2. Activamos la cuenta en la tabla usuario_auth
+    if (usuarioId) {
+        await this.usuarioAuthRepository.update(
+            usuarioAuthId,
+            { estado_cuenta: 'Activo' }
+        );
+    }
+
+    return perfilGuardado;
   }
 
   async findAll(pagina: number = 1, limite: number = 10) {

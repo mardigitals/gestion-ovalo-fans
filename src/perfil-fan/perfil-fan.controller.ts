@@ -16,9 +16,10 @@ export class PerfilFanController {
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Body() createPerfilFanDto: CreatePerfilFanDto, @Request() req) {
-  
+  console.log(req.user)
   const userId = req.user.userId;
-  return this.perfilFanService.create(createPerfilFanDto, userId);
+  const usuarioAuthId = req.user.authId;
+  return this.perfilFanService.create(createPerfilFanDto, userId, usuarioAuthId);
   }
 
   @Get()
