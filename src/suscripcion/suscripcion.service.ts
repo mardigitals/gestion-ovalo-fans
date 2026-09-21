@@ -325,6 +325,42 @@ export class SuscripcionService {
     });
   }
 
+  async getTopSociosAntiguos() {
+    // Buscamos las 5 suscripciones activas más viejas y viajamos por todas las relaciones
+    const suscripciones = await this.suscripcionRepository.find({
+      where: { estado: 'Activo' },
+      relations: [
+        'membresia',
+        'perfilFan',
+        'perfilFan.usuario',
+        'perfilFan.usuario.auth' // Cambiá 'usuarioAuth' si la propiedad se llama distinto en tu entity Usuario
+      ],
+      order: { fecha_inicio: 'ASC' }, // ASC = De la fecha más vieja a la más nueva
+      take: 5,
+    });
+
+    // Formateamos la respuesta extrayendo los datos de cada tabla correspondiente
+    return suscripciones.map(s => {
+      const fechaInicio = new Date(s.fecha_inicio);
+      const hoy = new Date();
+      
+      // Cálculo de diferencia en meses
+      let mesesActivo = (hoy.getFullYear() - fechaInicio.getFullYear()) * 12 + (hoy.getMonth() - fechaInicio.getMonth());
+      
+      // Atajo para no escribir tanto
+      const usuarioDatos = s.perfilFan?.usuario;
+      
+      return {
+        id: s.id,
+        nombre: usuarioDatos?.nombre || 'Socio',
+        apellido: usuarioDatos?.apellido || 'Óvalo',
+        email: usuarioDatos?.auth?.email || 'Sin email', // Agregado por si lo querés usar en el frontend
+        plan: s.membresia?.nombre || 'Membresía',
+        mesesActivo: mesesActivo > 0 ? mesesActivo : 1, 
+      };
+    });
+  }
+
   async obtenerPorId(id: number) {
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { id },

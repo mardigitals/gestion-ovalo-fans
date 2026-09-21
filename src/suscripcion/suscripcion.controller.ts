@@ -127,6 +127,13 @@ export class SuscripcionController {
     return this.suscripcionService.countByRetencion();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Administrativo')
+  @Get('admin/metricas/top-socios')
+  async getTopSocios() {
+    return this.suscripcionService.getTopSociosAntiguos();
+  }
+
   // Activación manual/automática (Simulando Webhook o acción de Staff)
   @Patch('admin/activar/:id')
   @UseGuards(RolesGuard)
