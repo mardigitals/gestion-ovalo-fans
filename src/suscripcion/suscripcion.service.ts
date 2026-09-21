@@ -295,6 +295,36 @@ export class SuscripcionService {
       .getRawMany();
   }
 
+  async countByRetencion() {
+    // Altas por mes (año actual)
+    const altasRaw = await this.suscripcionRepository.query(`
+      SELECT MONTH(fecha_inicio) as mes, COUNT(*) as cantidad 
+      FROM suscripcion 
+      WHERE YEAR(fecha_inicio) = YEAR(CURDATE()) 
+      GROUP BY mes
+    `);
+
+    // Bajas por mes (año actual)
+    const bajasRaw = await this.suscripcionRepository.query(`
+      SELECT MONTH(fecha_fin) as mes, COUNT(*) as cantidad 
+      FROM suscripcion 
+      WHERE YEAR(fecha_fin) = YEAR(CURDATE()) AND estado IN ('Cancelado', 'Vencido') 
+      GROUP BY mes
+    `);
+
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    
+    // Mapeamos los 12 meses combinando las altas y bajas
+    return meses.map((mes, index) => {
+      const mesNum = index + 1;
+      return {
+        name: mes,
+        altas: Number(altasRaw.find((a: any) => Number(a.mes) === mesNum)?.cantidad || 0),
+        bajas: Number(bajasRaw.find((b: any) => Number(b.mes) === mesNum)?.cantidad || 0)
+      };
+    });
+  }
+
   async obtenerPorId(id: number) {
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { id },

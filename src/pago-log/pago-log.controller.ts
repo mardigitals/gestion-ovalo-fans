@@ -81,4 +81,11 @@ export class PagoLogController {
     return pagos;
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Administrativo')
+  @Get('admin/metricas/mrr')
+  async getMetricasMrr() {
+    return await this.pagoLogService.countMetricasMrr();
+  }
+
 }

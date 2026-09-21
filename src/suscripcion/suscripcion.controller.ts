@@ -120,6 +120,12 @@ export class SuscripcionController {
     return await this.suscripcionService.countByProvincia();
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('SuperAdmin', 'Administrativo')
+  @Get('admin/metricas/retencion')
+  async getMetricasRetencion() {
+    return this.suscripcionService.countByRetencion();
+  }
 
   // Activación manual/automática (Simulando Webhook o acción de Staff)
   @Patch('admin/activar/:id')

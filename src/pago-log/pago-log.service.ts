@@ -215,4 +215,20 @@ export class PagoLogService {
       .getMany();
   }
 
+    async countMetricasMrr() {
+    const ingresosRaw = await this.pagoLogRepository.query(`
+      SELECT MONTH(fecha_pago) as mes, SUM(monto) as total 
+      FROM pago_log 
+      WHERE YEAR(fecha_pago) = YEAR(CURDATE()) 
+      GROUP BY mes
+    `);
+
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    
+    return meses.map((mes, index) => ({
+      name: mes,
+      ingresos: Number(ingresosRaw.find((r: any) => Number(r.mes) === (index + 1))?.total || 0)
+    }));
+  }
+
 }
