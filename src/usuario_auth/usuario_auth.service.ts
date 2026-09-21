@@ -56,21 +56,19 @@ export class UsuarioAuthService {
     return await this.usuarioAuthRepository.save(nuevoUsuario);
   }
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto, ip: string, navegador: string) {
     const { email, contrasena } = loginDto;
 
     // 1. Buscamos al usuario
     const usuario = await this.usuarioAuthRepository.findOne({
       where: { email },
-      select: ['id', 'email', 'contrasena_hash', 'estado_cuenta'] // Necesitamos el hash para comparar
+      select: ['id', 'email', 'contrasena_hash', 'estado_cuenta'] 
     });
 
-    // 2. Validación de existencia
     if (!usuario) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
-    //3. Verificar estado de la cuenta
     if (usuario.estado_cuenta === 'Bloqueado') {
       throw new UnauthorizedException('Tu cuenta ha sido suspendida por la administración del Autódromo.');
     }
@@ -80,33 +78,30 @@ export class UsuarioAuthService {
       relations: ['perfilStaff', 'perfilStaff.rolStaff'],
     });
 
-    // 4. Extraemos el nombre del rol (SuperAdmin, Prensa, etc.)
-    // Si no tiene perfil de staff, le asignamos 'fan' por defecto
     const nombreRol = usuarioConRol?.perfilStaff?.rolStaff?.nombre_rol || 'fan';
 
-      // 3. Comparamos la clave
-      const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
+    // 3. Comparamos la clave
+    const esValida = await bcrypt.compare(contrasena, usuario.contrasena_hash);
+    if (!esValida) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
 
-      if (!esValida) {
-        throw new UnauthorizedException('Credenciales inválidas');
-      }
+    // 4. Actualizamos el rastreo pasivo en la base de datos
+    usuario.ultimo_login = new Date(); 
+    usuario.ultima_ip = ip;
+    usuario.navegador_dispositivo = navegador;
+    await this.usuarioAuthRepository.save(usuario); 
 
-    
-      // 4. Actualizamos el último login en la base de datos
-      // usuario.ultimo_login = new Date(); 
-      // await this.usuarioAuthRepository.save(usuario); 
-
-      const payload = { 
-        sub: usuario.id, 
-        email: usuario.email, 
-        rol: nombreRol, 
-        userId: usuarioConRol?.id
+    const payload = { 
+      sub: usuario.id, 
+      email: usuario.email, 
+      rol: nombreRol, 
+      userId: usuarioConRol?.id
     };
 
-      // 6. Devolvemos el token (El usuario se lo lleva, vos guardaste la fecha en SQL)
-      return {
-        access_token: await this.jwtService.signAsync(payload),
-      };
+    return {
+      access_token: await this.jwtService.signAsync(payload),
+    };
   }
 
   async forgotPassword(email: string) {
