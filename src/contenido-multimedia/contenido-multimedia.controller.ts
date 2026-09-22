@@ -38,6 +38,13 @@ export class ContenidoMultimediaController {
     return this.contenidoMultimediaService.findOne(+id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Prensa', 'SuperAdmin')
+  @Get('prensa/metricas/vistas-por-tipo')
+  async getVistasPorTipo() {
+    return this.contenidoMultimediaService.getVistasPorTipo();
+  }
+  
   // 4. UPDATE: Solo el autor original
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SuperAdmin', 'Prensa') 

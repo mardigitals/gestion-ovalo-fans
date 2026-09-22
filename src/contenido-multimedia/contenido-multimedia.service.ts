@@ -212,4 +212,18 @@ export class ContenidoMultimediaService {
     }
     return null;
   }
+
+  async getVistasPorTipo() {
+    const rawData = await this.contenidoRepo.query(`
+      SELECT tipo as formato, SUM(vistas) as total_vistas
+      FROM contenido_multimedia
+      GROUP BY tipo
+    `);
+
+    // Formateamos para que el radar de Recharts lo entienda
+    return rawData.map(item => ({
+      formato: item.formato ? item.formato.charAt(0).toUpperCase() + item.formato.slice(1) : 'Desconocido',
+      vistas: Number(item.total_vistas || 0)
+    }));
+  }
 }
