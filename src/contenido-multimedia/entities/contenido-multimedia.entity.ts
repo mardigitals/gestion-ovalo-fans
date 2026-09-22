@@ -1,5 +1,6 @@
 import { PerfilStaff } from "src/perfil-staff/entities/perfil-staff.entity";
-import { Entity, Column, PrimaryGeneratedColumn, OneToOne, JoinColumn, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, JoinColumn, ManyToOne, CreateDateColumn } from 'typeorm';
+import { VistaContenidoLog } from './vista-contenido-log.entity';
 
 @Entity('contenido_multimedia')
 export class ContenidoMultimedia {
@@ -40,4 +41,8 @@ export class ContenidoMultimedia {
   @ManyToOne(() => PerfilStaff, (staff) => staff.contenidos)
   @JoinColumn({ name: 'autor_staff_id' })
   autor: PerfilStaff;
+
+  //RelaCION CON VISTAS LOG
+  @OneToMany(() => VistaContenidoLog, (log) => log.contenido)
+  vistasLog: VistaContenidoLog[];
 }
