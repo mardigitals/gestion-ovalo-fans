@@ -226,4 +226,40 @@ export class ContenidoMultimediaService {
       vistas: Number(item.total_vistas || 0)
     }));
   }
+
+  async getAlcanceMensualApilado() {
+    // 1. Traemos las vistas agrupadas por mes y por tipo
+    const rawData = await this.contenidoRepo.query(`
+      SELECT 
+        MONTH(fecha_publicacion) as mes, 
+        tipo as formato, 
+        SUM(vistas) as total_vistas
+      FROM contenido_multimedia
+      WHERE YEAR(fecha_publicacion) = YEAR(CURDATE())
+      GROUP BY mes, tipo
+    `);
+
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    
+    // 2. Armamos el array final para Recharts
+    return meses.map((mes, index) => {
+      const mesNum = index + 1;
+      
+      // Filtramos los datos que corresponden a este mes en particular
+      const datosMes = rawData.filter((r: any) => Number(r.mes) === mesNum);
+      
+      // Construimos el objeto base
+      const resultado: any = { mes: mes };
+      
+      // Asignamos las vistas a cada categoría (si no hay, queda en 0)
+      resultado.noticia = Number(datosMes.find((d: any) => d.formato === 'noticia')?.total_vistas || 0);
+      resultado.imagen = Number(datosMes.find((d: any) => d.formato === 'imagen')?.total_vistas || 0);
+      resultado.video = Number(datosMes.find((d: any) => d.formato === 'video')?.total_vistas || 0);
+      
+      // Calculamos el total mensual para mostrarlo en el tooltip o arriba de la barra
+      resultado.total = resultado.noticia + resultado.imagen + resultado.video;
+      
+      return resultado;
+    });
+  }
 }
