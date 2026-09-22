@@ -81,4 +81,20 @@ export class EventoService {
       select: ['id', 'titulo', 'fecha_evento'] // Solo traemos lo justo y necesario para el Frontend
     });
   }
+
+  async getMetricasTiposEventos() {
+    // Agrupa los eventos del año actual por su tipo (Ej: 'Carrera', 'Recital', Prueba, Otro.)
+    const rawData = await this.eventoRepository.query(`
+      SELECT tipo_evento as name, COUNT(*) as value
+      FROM evento
+      WHERE YEAR(fecha_evento) = YEAR(CURDATE())
+      GROUP BY tipo_evento
+    `);
+    
+    // Convertimos los valores a números para que Recharts los lea bien
+    return rawData.map(item => ({
+      name: item.name,
+      value: Number(item.value)
+    }));
+  }
 }

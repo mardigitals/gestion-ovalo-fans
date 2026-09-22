@@ -58,4 +58,11 @@ export class EventoController {
     return this.eventoService.remove(+id);
   }
 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Prensa', 'SuperAdmin')
+  @Get('prensa/metricas/tipos-eventos')
+  async getTiposEventos() {
+    return this.eventoService.getMetricasTiposEventos();
+  }
+
 }
