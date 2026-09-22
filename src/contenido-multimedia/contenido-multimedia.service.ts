@@ -6,6 +6,7 @@ import { PerfilStaff } from '../perfil-staff/entities/perfil-staff.entity';
 import { CreateContenidoMultimediaDto } from './dto/create-contenido-multimedia.dto';
 import { UpdateContenidoMultimediaDto } from './dto/update-contenido-multimedia.dto';
 import { CloudinaryService } from './cloudinary.service';
+import { VistaContenidoLog } from './entities/vista-contenido-log.entity';
 
 @Injectable()
 export class ContenidoMultimediaService {
@@ -13,6 +14,9 @@ export class ContenidoMultimediaService {
     @InjectRepository(ContenidoMultimedia)
     private readonly contenidoRepo: Repository<ContenidoMultimedia>,
 
+    @InjectRepository(VistaContenidoLog)
+    private readonly vistasLogRepository: Repository<VistaContenidoLog>,
+    
     @InjectRepository(PerfilStaff)
     private readonly staffRepo: Repository<PerfilStaff>,
 
@@ -134,6 +138,8 @@ export class ContenidoMultimediaService {
     }
 
     await this.contenidoRepo.increment({ id }, 'vistas', 1);
+    const nuevoLog = this.vistasLogRepository.create({ contenido: { id } });
+    await this.vistasLogRepository.save(nuevoLog);
 
     return {
       ...contenido,
@@ -208,11 +214,16 @@ export class ContenidoMultimediaService {
     const contenido = await this.contenidoRepo.findOneBy({ id });
     if (contenido) {
       contenido.vistas += 1;
-      return await this.contenidoRepo.save(contenido);
+    const guardado = await this.contenidoRepo.save(contenido);
+
+      // 2. NUEVO: Guardamos el log histórico
+      const nuevoLog = this.vistasLogRepository.create({ contenido: { id } });
+      await this.vistasLogRepository.save(nuevoLog);
+
+      return guardado;
     }
     return null;
   }
-
   async getVistasPorTipo() {
     const rawData = await this.contenidoRepo.query(`
       SELECT tipo as formato, SUM(vistas) as total_vistas
@@ -230,13 +241,14 @@ export class ContenidoMultimediaService {
   async getAlcanceMensualApilado() {
     // 1. Traemos las vistas agrupadas por mes y por tipo
     const rawData = await this.contenidoRepo.query(`
-      SELECT 
-        MONTH(fecha_publicacion) as mes, 
-        tipo as formato, 
-        SUM(vistas) as total_vistas
-      FROM contenido_multimedia
-      WHERE YEAR(fecha_publicacion) = YEAR(CURDATE())
-      GROUP BY mes, tipo
+     SELECT 
+        MONTH(v.fecha_vista) as mes, 
+        c.tipo as formato, 
+        COUNT(v.id) as total_vistas
+      FROM vista_contenido_log v
+      JOIN contenido_multimedia c ON v.contenido_id = c.id
+      WHERE YEAR(v.fecha_vista) = YEAR(CURDATE())
+      GROUP BY mes, c.tipo
     `);
 
     const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
