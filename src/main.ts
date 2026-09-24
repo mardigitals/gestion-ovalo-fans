@@ -34,7 +34,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: 'http://localhost:5173', // La URL de tu proyecto Vite
+    origin: true, // o La URL de tu proyecto Vite
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
@@ -42,7 +42,7 @@ async function bootstrap() {
   app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
   // Usamos el puerto del .env o el 3000 por defecto
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? '0.0.0.0');
   console.log(`Aplicación corriendo en: ${await app.getUrl()}`);
 
 }
