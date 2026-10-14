@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, LessThanOrEqual } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { Suscripcion } from './entities/suscripcion.entity';
 import { CreateSuscripcionDto } from './dto/create-suscripcion.dto';
@@ -17,7 +17,7 @@ export class SuscripcionService {
   ) {}
 
   /**
-   * 1. INICIAR SUSCRIPCIÓN (Estado: Pendiente)
+   * 1. INICIAR SUSCRIPCIÓN O CAMBIO DE PLAN (Upgrade/Downgrade)
    */
   async crearIntencion(dto: CreateSuscripcionDto, usuarioId: number) {
     const perfil = await this.suscripcionRepository.manager.getRepository('PerfilFan').findOne({
@@ -26,27 +26,51 @@ export class SuscripcionService {
 
     if (!perfil) throw new NotFoundException('No se encontró un perfil de Fan para este usuario.');
 
-    // Validar que no tenga otra suscripción ya activa
+    // Buscamos si ya tiene una suscripción activa
     const activa = await this.suscripcionRepository.findOne({
-      where: { perfil_fan_id: perfil.id, estado: 'Activo' }
+      where: { perfil_fan_id: perfil.id, estado: 'Activo' },
+      relations: ['membresia']
+    });
+
+    // Validamos que el plan que quiere contratar exista
+    const nuevaMembresia = await this.membresiaRepository.findOne({
+      where: { id: dto.membresia_id }
     });
     
+    if (!nuevaMembresia) throw new BadRequestException('El plan seleccionado no existe.');
+
+    // 🔥 LÓGICA DE UPGRADE / DOWNGRADE
     if (activa) {
-      throw new BadRequestException('Ya posees una suscripción activa.');
+      if (activa.membresia_id === dto.membresia_id) {
+        throw new BadRequestException('Ya posees este plan activo actualmente.');
+      }
+
+      // En tu BD: ID 1 es el más caro, ID 3 es el más barato.
+      // Si el ID nuevo es menor que el actual, es un UPGRADE (Ej: de 3 a 1)
+      const isUpgrade = dto.membresia_id < activa.membresia_id;
+
+      if (isUpgrade) {
+        // CAMINO A - UPGRADE: Se crea la intención pendiente. 
+        // Al pagarse, se cancelará la actual y esta entrará en vigencia inmediatamente.
+        // No hacemos nada extra acá, solo permitimos que pase a crear la 'Pendiente'.
+      } else {
+        // CAMINO B - DOWNGRADE: (Ej: de 1 a 3)
+        // La regla dice que mantiene los beneficios hasta la fecha de fin actual.
+        // Creamos la intención, pero en la activación (siguiente paso) deberemos programarla.
+      }
     }
 
-    // 🔥 EL BLINDAJE ANTI-SPAM: Buscamos si ya tiene una intención pendiente
+    // Buscamos si ya tiene una intención pendiente para actualizarla (Blindaje Anti-Spam)
     const pendienteExistente = await this.suscripcionRepository.findOne({
       where: { perfil_fan_id: perfil.id, estado: 'Pendiente' }
     });
 
     if (pendienteExistente) {
-      // Si ya tiene una pendiente, simplemente le actualizamos el plan que eligió ahora
       pendienteExistente.membresia_id = dto.membresia_id;
       return await this.suscripcionRepository.save(pendienteExistente);
     }
 
-    // Solo si no tenía nada pendiente, creamos una nueva
+    // Si no tenía nada pendiente, creamos la nueva intención
     const nueva = this.suscripcionRepository.create({
       membresia_id: dto.membresia_id,
       perfil_fan_id: perfil.id,
@@ -57,7 +81,7 @@ export class SuscripcionService {
   }
 
   /**
-   * 2. ACTIVACIÓN AUTOMÁTICA
+   * 2. ACTIVACIÓN DE SUSCRIPCIÓN (Con manejo de Upgrade / Downgrade)
    */
   async activarSuscripcion(id: number) {
     const suscripcionNueva = await this.suscripcionRepository.findOne({
@@ -67,35 +91,57 @@ export class SuscripcionService {
 
     if (!suscripcionNueva) throw new NotFoundException('La suscripción no existe.');
 
-    // 🔥 BLINDAJE ANTI-CLONES: Buscamos si el usuario ya tenía otra activa y la matamos
-    const suscripcionesViejas = await this.suscripcionRepository.find({
+    // Buscamos si el usuario ya tenía otra activa
+    const suscripcionVieja = await this.suscripcionRepository.findOne({
       where: { 
         perfil_fan_id: suscripcionNueva.perfil_fan_id, 
         estado: 'Activo' 
-      }
+      },
+      order: { id: 'DESC' }
     });
 
-    for (const vieja of suscripcionesViejas) {
-      if (vieja.id !== suscripcionNueva.id) {
-        vieja.estado = 'Cancelado'; // Damos de baja la anterior (Upgrade/Reemplazo)
-        await this.suscripcionRepository.save(vieja);
+    const ahora = new Date();
+    let fechaInicio = ahora;
+    let estadoNueva = 'Activo';
+
+    if (suscripcionVieja && suscripcionVieja.id !== suscripcionNueva.id) {
+      // Regla de tu BD: ID menor es más caro (1 = P1, 3 = P3)
+      const isUpgrade = suscripcionNueva.membresia_id < suscripcionVieja.membresia_id;
+
+      if (isUpgrade) {
+        // 🔥 CAMINO A: UPGRADE (Mayor valor)
+        // Damos de baja la anterior inmediatamente
+        suscripcionVieja.estado = 'Cancelado';
+        await this.suscripcionRepository.save(suscripcionVieja);
+        
+        // La nueva arranca HOY
+        fechaInicio = ahora;
+        estadoNueva = 'Activo';
+      } else {
+        // ⏳ CAMINO B: DOWNGRADE (Menor valor)
+        // La vieja se mantiene activa hasta su vencimiento.
+        // La nueva arrancará exactamente el día que vence la vieja.
+        fechaInicio = new Date(suscripcionVieja.fecha_fin);
+        
+        // La dejamos como Pendiente para que no haya 2 suscripciones "Activas" chocando.
+        // (Podrías agregar 'Programado' a tu ENUM en el entity y el DTO si querés ser más purista)
+        estadoNueva = 'Pendiente'; 
       }
     }
 
-    // Procedemos a activar la nueva
-    const ahora = new Date();
-    const fechaFin = new Date();
-
+    // Calculamos la fecha de fin de la nueva
+    const fechaFin = new Date(fechaInicio);
     if (suscripcionNueva.membresia.nombre.toLowerCase().includes('anual')) {
-      fechaFin.setFullYear(ahora.getFullYear() + 1);
+      fechaFin.setFullYear(fechaInicio.getFullYear() + 1);
     } else {
-      fechaFin.setDate(ahora.getDate() + 30);
+      // Le sumamos 30 días exactos desde su fecha de inicio
+      fechaFin.setDate(fechaInicio.getDate() + 30); 
     }
 
     return await this.suscripcionRepository.save({
       ...suscripcionNueva,
-      estado: 'Activo',
-      fecha_inicio: ahora,
+      estado: estadoNueva,
+      fecha_inicio: fechaInicio,
       fecha_fin: fechaFin,
     });
   }
@@ -126,23 +172,49 @@ export class SuscripcionService {
   }
 
   /**
-   * 4. PROCESO DE VENCIMIENTO (Cron Job)
-   * Ejecuta la limpieza de socios que excedieron las 72hs de gracia.
+   * 4. PROCESO DE CICLO DE VIDA (Cron Job Diario a la medianoche)
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async limpiarExpirados() {
-    const limiteCorte = new Date();
-    limiteCorte.setHours(limiteCorte.getHours() - 72); 
+  async procesarCicloDeVidaSuscripciones() {
+    console.log('[Cron] Iniciando procesamiento diario de suscripciones...');
+    const hoy = new Date();
 
-    const resultado = await this.suscripcionRepository.update(
+    // REGLA 1: Activo -> Vencido (Se pasó de las 72hs de gracia)
+    const limiteVencimiento = new Date();
+    limiteVencimiento.setHours(limiteVencimiento.getHours() - 72); 
+    
+    const resVencidos = await this.suscripcionRepository.update(
       { 
         estado: 'Activo', 
-        fecha_fin: LessThan(limiteCorte) // Más de 72hs vencido
+        fecha_fin: LessThan(limiteVencimiento) 
       },
       { estado: 'Vencido' }
     );
 
-    console.log(`[Cron] ${resultado.affected} socios pasaron a Vencido.`);
+    // REGLA 2: Vencido -> Cancelado (Más de 30 días vencido)
+    // Se pausa el débito y la cuenta queda congelada para no acumular deuda infinita
+    const limiteCancelacion = new Date();
+    limiteCancelacion.setDate(limiteCancelacion.getDate() - 30);
+
+    const resCancelados = await this.suscripcionRepository.update(
+      { 
+        estado: 'Vencido', 
+        fecha_fin: LessThan(limiteCancelacion) 
+      },
+      { estado: 'Cancelado' }
+    );
+
+    // REGLA 3: Pendiente -> Activo (Para los Downgrades diferidos)
+    // Si un downgrade quedó programado y su fecha de inicio es hoy o ya pasó, lo activamos.
+    const resDowngrades = await this.suscripcionRepository.update(
+      {
+        estado: 'Pendiente',
+        fecha_inicio: LessThanOrEqual(hoy)
+      },
+      { estado: 'Activo' }
+    );
+
+    console.log(`[Cron] Resumen: ${resVencidos.affected} pasaron a Vencido | ${resCancelados.affected} pasaron a Cancelado | ${resDowngrades.affected} Downgrades activados.`);
   }
 
   /**
@@ -164,7 +236,7 @@ export class SuscripcionService {
 
   /**
    * 6. OBTENER ESTADO PARA EL FRONTEND
-   * Devuelve el string exacto del estado para manejar el PitStopOverlay
+   * Devuelve el string exacto del estado para manejar el PitStopOverlay y la Billetera
    */
   async obtenerEstadoParaFrontend(usuarioId: number): Promise<string> {
     const perfil = await this.suscripcionRepository.manager.getRepository('PerfilFan').findOne({
@@ -173,7 +245,17 @@ export class SuscripcionService {
 
     if (!perfil) return 'Sin Suscripcion';
 
-    // Buscamos la última suscripción que haya intentado hacer
+    // 🔥 CORRECCIÓN: 1. Primero buscamos si tiene una suscripción 'Activo' vigente.
+    // Esto evita que un intento de pago 'Pendiente' oculte su membresía real.
+    const suscripcionActiva = await this.suscripcionRepository.findOne({
+      where: { perfil_fan_id: perfil.id, estado: 'Activo' }
+    });
+
+    if (suscripcionActiva) {
+      return 'Activo';
+    }
+
+    // 2. Si NO tiene una activa, buscamos la última fila para ver si está Pendiente, Vencida o Cancelada
     const ultimaSuscripcion = await this.suscripcionRepository.findOne({
       where: { perfil_fan_id: perfil.id },
       order: { id: 'DESC' }

@@ -298,14 +298,27 @@ export class UsuarioAuthService {
 
       // 5. Buscamos su ÚLTIMA suscripción
       if (perfil) {
-        const ultimaSuscripcion = await this.suscripcionRepository.findOne({
-          where: { perfil_fan_id: perfil.id },
-          order: { id: 'DESC' }
+        // Primero intentamos traer la ACTIVA (Prioridad absoluta)
+        const suscripcionActiva = await this.suscripcionRepository.findOne({
+          where: { perfil_fan_id: perfil.id, estado: 'Activo' }
         });
 
-        if (ultimaSuscripcion) {
-          data.nivelFan = `P${ultimaSuscripcion.membresia_id}`; 
-          data.estadoSuscripcion = ultimaSuscripcion.estado; 
+        if (suscripcionActiva) {
+          data.suscripcion = suscripcionActiva; // Se lo pasamos entero para que Mi Billetera sepa el ID
+          data.nivelFan = `P${suscripcionActiva.membresia_id}`; 
+          data.estadoSuscripcion = 'Activo'; 
+        } else {
+          // Si no tiene activa, traemos la última para saber si está Vencido, Cancelado o Pendiente
+          const ultimaSuscripcion = await this.suscripcionRepository.findOne({
+            where: { perfil_fan_id: perfil.id },
+            order: { id: 'DESC' }
+          });
+
+          if (ultimaSuscripcion) {
+            data.suscripcion = ultimaSuscripcion;
+            data.nivelFan = `P${ultimaSuscripcion.membresia_id}`; 
+            data.estadoSuscripcion = ultimaSuscripcion.estado; 
+          }
         }
       }
 
