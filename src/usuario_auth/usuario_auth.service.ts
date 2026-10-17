@@ -78,6 +78,10 @@ export class UsuarioAuthService {
       relations: ['perfilStaff', 'perfilStaff.rolStaff'],
     });
 
+    if (!usuarioConRol) {
+      throw new UnauthorizedException('Perfil de usuario no encontrado o cuenta desactivada.');
+    }
+
     const nombreRol = usuarioConRol?.perfilStaff?.rolStaff?.nombre_rol || 'fan';
 
     // 3. Comparamos la clave
@@ -216,6 +220,7 @@ export class UsuarioAuthService {
 
     // Recuperamos la cuenta
     await this.usuarioAuthRepository.recover(auth);
+    await this.usuarioRepository.restore({ usuario_auth_id: auth.id });
 
     // Limpieza de seguridad
     auth.token_recuperacion = null;
@@ -255,6 +260,7 @@ export class UsuarioAuthService {
     // Si estaba borrado lógicamente, lo recuperamos también
     if (auth.eliminado_en) {
       await this.usuarioAuthRepository.recover(auth);
+      await this.usuarioRepository.restore({ usuario_auth_id: id });
     } else {
       await this.usuarioAuthRepository.save(auth);
     }
