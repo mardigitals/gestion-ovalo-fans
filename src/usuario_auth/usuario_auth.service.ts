@@ -218,7 +218,7 @@ export class UsuarioAuthService {
       auth.email,
       '👋 Cuenta desactivada - Óvalo Fans',
       `Tu cuenta ha sido desactivada correctamente. Te extrañaremos en las pistas.\n\n` +
-      `Si quieres volver, puedes reactivar tu cuenta aquí: http://localhost:3000/reactivar?token=${tokenReactivacion}`
+      `Si quieres volver, puedes reactivar tu cuenta aquí: http://localhost:5173/reactivar-cuenta?token=${tokenReactivacion}`
     );
 
     return { message: "Tu cuenta ha sido desactivada correctamente." };
