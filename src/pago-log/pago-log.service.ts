@@ -107,6 +107,7 @@ export class PagoLogService {
 
     const [data, total] = await this.pagoLogRepository.findAndCount({
       relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario'],
+      withDeleted: true, 
       take: limite,
       skip: saltar,
       order: { fecha_pago: 'DESC' }
