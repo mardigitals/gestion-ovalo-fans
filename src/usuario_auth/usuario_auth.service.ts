@@ -256,16 +256,7 @@ export class UsuarioAuthService {
     return { message: "¡Cuenta reactivada! Ya puedes iniciar sesión normalmente." };
   }
 
-  // async suspendByAdmin (id: number) {
-  //   const auth = await this.usuarioAuthRepository.findOneBy({ id });
-  //   if (!auth) throw new NotFoundException('Usuario no encontrado');
-
-  //   auth.estado_cuenta = 'Bloqueado';
-  //   await this.usuarioAuthRepository.save(auth);
-
-  //   return { message: `Cuenta con ID ${id} ha sido suspendida` };
-  // }
- // SUSPENDER (Acción del SuperAdmin)
+  // SUSPENDER (Acción del SuperAdmin)
   async suspendByAdmin(id: number) {
     const auth = await this.usuarioAuthRepository.findOne({ 
       where: { id },
@@ -300,30 +291,7 @@ export class UsuarioAuthService {
     return { message: `La cuenta de ${auth.email} ha sido suspendida` };
   }
 
-
-
-  // // REANUDACIÓN (Acción del SuperAdmin)
-  // async restartByAdmin(id: number) {
-  //   const auth = await this.usuarioAuthRepository.findOne({ 
-  //     where: { id }, 
-  //     withDeleted: true 
-  //   });
-    
-  //   if (!auth) throw new NotFoundException('Usuario no encontrado');
-
-  //   auth.estado_cuenta = 'Activo';
-    
-  //   // Si estaba borrado lógicamente, lo recuperamos también
-  //   if (auth.eliminado_en) {
-  //     await this.usuarioAuthRepository.recover(auth);
-  //     await this.usuarioRepository.restore({ usuario_auth_id: id });
-  //   } else {
-  //     await this.usuarioAuthRepository.save(auth);
-  //   }
-
-  //   return { message: `La cuenta con ID ${id} ha sido reactivada.` };
-  // }
-   // REANUDACIÓN (Acción del SuperAdmin)
+  // REANUDACIÓN (Acción del SuperAdmin)
   async restartByAdmin(id: number) {
     const auth = await this.usuarioAuthRepository.findOne({ 
       where: { id }, 
@@ -452,11 +420,6 @@ export class UsuarioAuthService {
       totalPaginas: Math.ceil(total / limite)
     };
   }
-
-  // deleteByAdmin(id: number) {
-  //   return this.usuarioAuthRepository.softDelete(id);
-  // }
-
 
   // ELIMINAR DESDE EL PANEL (Acción del SuperAdmin)
   async deleteByAdmin(id: number) {
