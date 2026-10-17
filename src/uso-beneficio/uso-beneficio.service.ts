@@ -454,10 +454,9 @@ export class UsoBeneficioService {
   // MÉTODOS PARA EL PANEL DEL STAFF (GESTIÓN)
   // =========================================================
 
- async obtenerTodosParaGestion(filtros: GetUsosFilterDto) {
-    const { pagina = 1, limite = 10 } = filtros; // Valores por defecto
+  async obtenerTodosParaGestion(filtros: GetUsosFilterDto) {
+    const { pagina = 1, limite = 10 } = filtros;
     const saltar = (pagina - 1) * limite;
-    // Armamos un objeto de filtro dinámico
     const whereRules: FindOptionsWhere<UsoBeneficio> = {};
 
     if (filtros.estado) {
@@ -468,7 +467,6 @@ export class UsoBeneficioService {
       whereRules.tipo_beneficio = filtros.tipo_beneficio;
     }
 
-    // Filtrar por DNI requiere navegar por las relaciones
     if (filtros.dni) {
       whereRules.suscripcion = {
         perfilFan: {
@@ -479,47 +477,58 @@ export class UsoBeneficioService {
       };
     }
 
-    // Filtrar por una fecha específica (busca todo lo que pasó en ese día)
     if (filtros.fecha) {
-      // Asumimos que desde el front mandan '2026-04-02'
       const inicioDia = new Date(`${filtros.fecha}T00:00:00.000Z`);
       const finDia = new Date(`${filtros.fecha}T23:59:59.999Z`);
-      
       whereRules.fecha_solicitud = Between(inicioDia, finDia);
     }
 
     const [solicitudes, total] = await this.usoBeneficioRepository.findAndCount({
       where: whereRules,
-      relations: ['suscripcion', 'suscripcion.perfilFan', 'suscripcion.perfilFan.usuario', 'suscripcion.perfilFan.usuario.auth', 'evento'],
+      relations: [
+        'suscripcion', 
+        'suscripcion.perfilFan', 
+        'suscripcion.perfilFan.usuario', 
+        'suscripcion.perfilFan.usuario.auth', 
+        'evento'
+      ],
+      withDeleted: true, // Incluye registros aunque tengan soft delete
       order: { fecha_solicitud: 'DESC' }, 
-      take: limite, // 👈 Paginación
-      skip: saltar   // 👈 Paginación
+      take: limite,
+      skip: saltar
     });
 
-    // Peinamos los datos para devolver un JSON limpio y liviano al Frontend
-   const dataLimpia = solicitudes.map(uso => ({
-      id: uso.id,
-      tipo_beneficio: uso.tipo_beneficio,
-      categoria: uso.categoria_beneficio,
-      estado: uso.estado,
-      fecha_solicitud: uso.fecha_solicitud,
-      fecha_uso: uso.fecha_uso,
-      notas_staff: uso.notas_staff,
-      // Aplanamos la data del usuario para que React no tenga que bucear en objetos anidados
-      fan: {
-        nombre_completo: `${uso.suscripcion.perfilFan.usuario.nombre} ${uso.suscripcion.perfilFan.usuario.apellido}`,
-        dni: uso.suscripcion.perfilFan.usuario.dni,
-        telefono: uso.suscripcion.perfilFan.usuario.telefono,
-        alias: uso.suscripcion.perfilFan.alias,
-        email: uso.suscripcion.perfilFan.usuario.auth?.email
-      },
-      // Si hay un evento asociado, mandamos solo lo básico
-      evento: uso.evento ? {
-        id: uso.evento.id,
-        nombre: uso.evento.titulo,
-        fecha: uso.evento.fecha_evento
-      } : null
-    }));
+    const dataLimpia = solicitudes.map(uso => {
+      const fanPerfil = uso.suscripcion?.perfilFan;
+      const usuario = fanPerfil?.usuario;
+      const auth = usuario?.auth;
+
+      const nombreCompleto = usuario 
+        ? `${usuario.nombre} ${usuario.apellido}`.trim() 
+        : (fanPerfil?.alias || 'Usuario Inactivo/Eliminado');
+
+      return {
+        id: uso.id,
+        tipo_beneficio: uso.tipo_beneficio,
+        categoria: uso.categoria_beneficio,
+        estado: uso.estado,
+        fecha_solicitud: uso.fecha_solicitud,
+        fecha_uso: uso.fecha_uso,
+        notas_staff: uso.notas_staff,
+        fan: {
+          nombre_completo: nombreCompleto,
+          dni: usuario?.dni || 'S/D',
+          telefono: usuario?.telefono || 'S/D',
+          alias: fanPerfil?.alias || 'Sin alias',
+          email: auth?.email || 'Sin correo'
+        },
+        evento: uso.evento ? {
+          id: uso.evento.id,
+          nombre: uso.evento.titulo,
+          fecha: uso.evento.fecha_evento
+        } : null
+      };
+    });
 
     return {
       data: dataLimpia,
@@ -528,9 +537,8 @@ export class UsoBeneficioService {
       totalPaginas: Math.ceil(total / limite)
     };
   }
-  
 
- async cambiarEstado(id: number, nuevoEstado: string, notas?: string, contactoCoordinador?: string, fechaUso?: string) {
+  async cambiarEstado(id: number, nuevoEstado: string, notas?: string, contactoCoordinador?: string, fechaUso?: string) {
     //  Traemos las relaciones profundas para poder sacar el email del usuario
     const uso = await this.usoBeneficioRepository.findOne({ 
       where: { id },
