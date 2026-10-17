@@ -51,7 +51,7 @@ export class UsuarioAuthController {
   @UseGuards(JwtAuthGuard)
   @Delete('delete-account')
   remove(@Request() req: any) { 
-    return this.usuarioAuthService.remove(req.user.userId);
+    return this.usuarioAuthService.remove(req.user.email);
   }
 
   // 4. Agregamos ": any" a req para que TypeScript no chille al buscar req.user

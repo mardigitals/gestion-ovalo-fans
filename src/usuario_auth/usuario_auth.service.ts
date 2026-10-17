@@ -178,9 +178,9 @@ export class UsuarioAuthService {
   }
 
   // SOLICITAR BAJA (El usuario desde su perfil)
-  async remove(authId: number) {
+  async remove(email: string) {
     const auth = await this.usuarioAuthRepository.findOne({
-      where: { id: authId },
+      where: { email: email }, 
       relations: ['usuario']
     });
 
@@ -190,6 +190,26 @@ export class UsuarioAuthService {
     const tokenReactivacion = crypto.randomBytes(32).toString('hex');
     auth.token_recuperacion = tokenReactivacion;
     auth.token_expiracion = null; // Sin límite para volver
+
+    // REGLA: Cancelar suscripción activa al eliminar cuenta
+    if (auth.usuario) {
+       const perfilFan = await this.perfilFanRepository.findOne({
+         where: { usuario_id: auth.usuario.id }
+       });
+
+       if (perfilFan) {
+         const suscripcionActiva = await this.suscripcionRepository.findOne({
+           where: { perfil_fan_id: perfilFan.id, estado: 'Activo' }
+         });
+
+         if (suscripcionActiva) {
+           suscripcionActiva.estado = 'Cancelado';
+           suscripcionActiva.fecha_fin = new Date(); 
+           await this.suscripcionRepository.save(suscripcionActiva);
+           console.log(`Suscripción de ${auth.email} cancelada automáticamente.`);
+         }
+       }
+    }
 
     await this.usuarioAuthRepository.save(auth);
     await this.usuarioAuthRepository.softRemove(auth);
