@@ -269,6 +269,7 @@ export class SuscripcionService {
 
     const [data, total] = await this.suscripcionRepository.findAndCount({
       relations: ['perfilFan', 'membresia', 'perfilFan.usuario'],
+      withDeleted: true, // Esto permite traer la suscripción aunque esté soft-deleted (eliminada)
       take: limite,
       skip: saltar,
       order: { id: 'DESC' }
@@ -303,6 +304,7 @@ export class SuscripcionService {
     return await this.suscripcionRepository.find({
       where: { estado },
       relations: ['perfilFan', 'membresia'],
+      withDeleted: true, // Esto permite traer la suscripción aunque esté soft-deleted (eliminada) 
       order: { fecha_fin: 'DESC' }
     });
   }
@@ -315,7 +317,8 @@ export class SuscripcionService {
           usuario: { dni } 
         } 
       },
-      relations: ['perfilFan', 'perfilFan.usuario', 'membresia']
+      relations: ['perfilFan', 'perfilFan.usuario', 'membresia'],
+      withDeleted: true // Esto permite traer la suscripción aunque esté soft-deleted (eliminada) 
     })
     if (resultado.length === 0) throw new NotFoundException(`No hay suscripciones para el DNI ${dni}`);
     return resultado;
@@ -415,8 +418,9 @@ export class SuscripcionService {
         'membresia',
         'perfilFan',
         'perfilFan.usuario',
-        'perfilFan.usuario.auth' // Cambiá 'usuarioAuth' si la propiedad se llama distinto en tu entity Usuario
+        'perfilFan.usuario.auth', // Cambiá 'usuarioAuth' si la propiedad se llama distinto en tu entity Usuario
       ],
+      withDeleted: true, // Esto permite traer la suscripción aunque esté soft-deleted (eliminada) 
       order: { fecha_inicio: 'ASC' }, // ASC = De la fecha más vieja a la más nueva
       take: 5,
     });
@@ -447,7 +451,8 @@ export class SuscripcionService {
     const suscripcion = await this.suscripcionRepository.findOne({
       where: { id },
       // 👇 Agregamos perfilFan y su usuario para saber de quién es
-      relations: ['membresia', 'perfilFan', 'perfilFan.usuario'] 
+      relations: ['membresia', 'perfilFan', 'perfilFan.usuario'],
+      withDeleted: true // Esto permite traer la suscripción aunque esté soft-deleted (eliminada) 
     });
     
     if (!suscripcion) {
