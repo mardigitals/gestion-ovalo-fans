@@ -256,17 +256,74 @@ export class UsuarioAuthService {
     return { message: "¡Cuenta reactivada! Ya puedes iniciar sesión normalmente." };
   }
 
-  async suspendByAdmin (id: number) {
-    const auth = await this.usuarioAuthRepository.findOneBy({ id });
+  // async suspendByAdmin (id: number) {
+  //   const auth = await this.usuarioAuthRepository.findOneBy({ id });
+  //   if (!auth) throw new NotFoundException('Usuario no encontrado');
+
+  //   auth.estado_cuenta = 'Bloqueado';
+  //   await this.usuarioAuthRepository.save(auth);
+
+  //   return { message: `Cuenta con ID ${id} ha sido suspendida` };
+  // }
+ // SUSPENDER (Acción del SuperAdmin)
+  async suspendByAdmin(id: number) {
+    const auth = await this.usuarioAuthRepository.findOne({ 
+      where: { id },
+      relations: ['usuario'] // Cargamos la relación para la suscripción
+    });
+    
     if (!auth) throw new NotFoundException('Usuario no encontrado');
 
     auth.estado_cuenta = 'Bloqueado';
-    await this.usuarioAuthRepository.save(auth);
 
-    return { message: `Cuenta con ID ${id} ha sido suspendida` };
+    // REGLA: Cancelar suscripción activa por sanción disciplinaria
+    if (auth.usuario) {
+       const perfilFan = await this.perfilFanRepository.findOne({
+         where: { usuario_id: auth.usuario.id }
+       });
+
+       if (perfilFan) {
+         const suscripcionActiva = await this.suscripcionRepository.findOne({
+           where: { perfil_fan_id: perfilFan.id, estado: 'Activo' }
+         });
+
+         if (suscripcionActiva) {
+           suscripcionActiva.estado = 'Cancelado';
+           suscripcionActiva.fecha_fin = new Date(); 
+           await this.suscripcionRepository.save(suscripcionActiva);
+           console.log(`[Bloqueo Admin] Suscripción de ${auth.email} cancelada por sanción.`);
+         }
+       }
+    }
+
+    await this.usuarioAuthRepository.save(auth);
+    return { message: `La cuenta de ${auth.email} ha sido suspendida` };
   }
 
-  // REANUDACIÓN (Acción del SuperAdmin)
+
+
+  // // REANUDACIÓN (Acción del SuperAdmin)
+  // async restartByAdmin(id: number) {
+  //   const auth = await this.usuarioAuthRepository.findOne({ 
+  //     where: { id }, 
+  //     withDeleted: true 
+  //   });
+    
+  //   if (!auth) throw new NotFoundException('Usuario no encontrado');
+
+  //   auth.estado_cuenta = 'Activo';
+    
+  //   // Si estaba borrado lógicamente, lo recuperamos también
+  //   if (auth.eliminado_en) {
+  //     await this.usuarioAuthRepository.recover(auth);
+  //     await this.usuarioRepository.restore({ usuario_auth_id: id });
+  //   } else {
+  //     await this.usuarioAuthRepository.save(auth);
+  //   }
+
+  //   return { message: `La cuenta con ID ${id} ha sido reactivada.` };
+  // }
+   // REANUDACIÓN (Acción del SuperAdmin)
   async restartByAdmin(id: number) {
     const auth = await this.usuarioAuthRepository.findOne({ 
       where: { id }, 
@@ -277,15 +334,16 @@ export class UsuarioAuthService {
 
     auth.estado_cuenta = 'Activo';
     
-    // Si estaba borrado lógicamente, lo recuperamos también
+    // Si estaba borrado lógicamente, lo recuperamos blindando el ID (auth.id)
     if (auth.eliminado_en) {
       await this.usuarioAuthRepository.recover(auth);
-      await this.usuarioRepository.restore({ usuario_auth_id: id });
+      // Restauramos la cascada en la tabla usuario
+      await this.usuarioRepository.restore({ usuario_auth_id: auth.id });
     } else {
       await this.usuarioAuthRepository.save(auth);
     }
 
-    return { message: `La cuenta con ID ${id} ha sido reactivada.` };
+    return { message: `La cuenta de ${auth.email} ha sido reactivada.` };
   }
 
   async obtenerDatosCompletos(userId: number, rol: string) {
@@ -395,10 +453,43 @@ export class UsuarioAuthService {
     };
   }
 
-  deleteByAdmin(id: number) {
-    return this.usuarioAuthRepository.softDelete(id);
-  }
+  // deleteByAdmin(id: number) {
+  //   return this.usuarioAuthRepository.softDelete(id);
+  // }
 
+
+  // ELIMINAR DESDE EL PANEL (Acción del SuperAdmin)
+  async deleteByAdmin(id: number) {
+    const auth = await this.usuarioAuthRepository.findOne({ 
+      where: { id },
+      relations: ['usuario'] 
+    });
+
+    if (!auth) throw new NotFoundException('Usuario no encontrado');
+
+    // REGLA: Cancelar suscripción activa si el Admin lo echa definitivamente
+    if (auth.usuario) {
+       const perfilFan = await this.perfilFanRepository.findOne({
+         where: { usuario_id: auth.usuario.id }
+       });
+
+       if (perfilFan) {
+         const suscripcionActiva = await this.suscripcionRepository.findOne({
+           where: { perfil_fan_id: perfilFan.id, estado: 'Activo' }
+         });
+
+         if (suscripcionActiva) {
+           suscripcionActiva.estado = 'Cancelado';
+           suscripcionActiva.fecha_fin = new Date(); 
+           await this.suscripcionRepository.save(suscripcionActiva);
+         }
+       }
+    }
+
+    // Usamos softRemove (en vez de softDelete directo) para respetar ciclos de TypeORM
+    await this.usuarioAuthRepository.softRemove(auth);
+    return { message: `La cuenta de ${auth.email} ha sido eliminada.` };
+  }
 }
 
   
