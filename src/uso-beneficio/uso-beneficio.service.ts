@@ -24,12 +24,13 @@ export class UsoBeneficioService {
  
   async registrarUso(dto: CreateUsoBeneficioDto, usuarioId: number) {
     const suscripcion = await this.suscripcionRepository.findOne({
-      where: { 
-        perfilFan: { usuario_id: usuarioId } 
+      where: {
+        perfilFan: { usuario_id: usuarioId },
+        estado: 'Activo', // 👈 1. Filtramos solo las que estén activas
       },
-      relations: ['membresia', 'pagoLogs', 'perfilFan', 'perfilFan.usuario'] 
+      order: { id: 'DESC' }, // 👈 2. Tomamos siempre la más reciente
+      relations: ['membresia', 'pagoLogs', 'perfilFan', 'perfilFan.usuario'],
     });
-    console.log('Suscripción encontrada:', suscripcion);
     if (!suscripcion) throw new NotFoundException('No tenés una suscripción vinculada.');
 
     // 2, 3 y 4: Validaciones (Estado, Jerarquía y Reglas Pro)
