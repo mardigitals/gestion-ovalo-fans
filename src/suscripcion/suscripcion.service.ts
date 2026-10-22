@@ -275,23 +275,16 @@ export class SuscripcionService {
     return ultimaSuscripcion ? ultimaSuscripcion.estado : 'Sin Suscripcion';
   }
 
-  async findAll(pagina: number = 1, limite: number = 10) {
-    const saltar = (pagina - 1) * limite;
-
-    const [data, total] = await this.suscripcionRepository.findAndCount({
+  async findAll() {
+    const data = await this.suscripcionRepository.find({
       relations: ['perfilFan', 'membresia', 'perfilFan.usuario'],
-      withDeleted: true, // Esto permite traer la suscripción aunque esté soft-deleted (eliminada)
-      take: limite,
-      skip: saltar,
+      withDeleted: true,
       order: { id: 'DESC' }
     });
 
     return {
       data,
-      total,
-      pagina,
-      limite,
-      totalPaginas: Math.ceil(total / limite)
+      total: data.length
     };
   }
 
