@@ -5,6 +5,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { Suscripcion } from './entities/suscripcion.entity';
 import { CreateSuscripcionDto } from './dto/create-suscripcion.dto';
 import { Membresia } from 'src/membresia/entities/membresia.entity';
+import { verificarSocioAlDia } from 'src/common/mocks/padron-socios.mock';
 
 @Injectable()
 export class SuscripcionService {
@@ -516,5 +517,108 @@ export class SuscripcionService {
       message: 'Operación cancelada exitosamente.',
       suscripcionEliminada: suscripcionPendiente.id
     };
+  }
+
+  /**
+   * 🔄 CRONJOB DIARIO: 
+   * 1. Controla vencimientos del día (renueva si está AL_DIA, pasa a Vencido si está MOROSO).
+   * 2. Revisa socios con suscripción Vencida que hayan pagado fuera de término en el club para reactivarlos.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async controlarVencimientosYSociosClub() {
+    const ahora = new Date();
+    const pagoLogRepo = this.suscripcionRepository.manager.getRepository('PagoLog');
+
+    // =========================================================================
+    // ETAPA 1: Suscripciones ACTIVAS que acaban de llegar a su fecha_fin
+    // =========================================================================
+    const suscripcionesPorVencer = await this.suscripcionRepository.find({
+      where: {
+        estado: 'Activo',
+        fecha_fin: LessThanOrEqual(ahora),
+      },
+      relations: ['perfilFan', 'perfilFan.usuario'],
+    });
+
+    for (const susc of suscripcionesPorVencer) {
+      const perfil = susc.perfilFan;
+      const dniUsuario = perfil?.usuario?.dni;
+
+      // Si es socio del club con el plan P3 (ID 3)
+      if (perfil?.es_socio_club && susc.membresia_id === 3 && dniUsuario) {
+        const checkPadron = verificarSocioAlDia(dniUsuario);
+
+        if (checkPadron.valido) {
+          //  Sigue AL DÍA: Renovamos 30 días de corrido desde su fecha_fin anterior
+          const nuevaFechaInicio = new Date(susc.fecha_fin);
+          const nuevaFechaFin = new Date(nuevaFechaInicio);
+          nuevaFechaFin.setDate(nuevaFechaInicio.getDate() + 30);
+
+          susc.fecha_inicio = nuevaFechaInicio;
+          susc.fecha_fin = nuevaFechaFin;
+          susc.estado = 'Activo';
+          await this.suscripcionRepository.save(susc);
+
+          await pagoLogRepo.save(pagoLogRepo.create({
+            suscripcion_id: susc.id,
+            monto: 0,
+            metodo_pago: 'convenio_socio_ar',
+            id_transaccion_mp: `RENOV_AR_${dniUsuario}_${Date.now()}`,
+          }));
+
+          console.log(`[Cron Socio AR] Renovación P3 al día para DNI ${dniUsuario}`);
+        } else {
+          //  Pagó tarde o debe la cuota del club: pasa a 'Vencido' (NO le quitamos es_socio_club)
+          // Así mañana el Cron vuelve a fijarse si ya regularizó en secretaría.
+          susc.estado = 'Vencido';
+          await this.suscripcionRepository.save(susc);
+
+          console.log(`[Cron Socio AR] Socio DNI ${dniUsuario} en mora con el Club. Pasa a Vencido temporalmente.`);
+        }
+      } else {
+        // Fan normal o socio con plan pago (P1/P2) que venció su mes
+        susc.estado = 'Vencido';
+        await this.suscripcionRepository.save(susc);
+      }
+    }
+
+    // =========================================================================
+    // ETAPA 2: Recuperación diaria de Socios AR que pagaron fuera de término
+    // =========================================================================
+    const suscripcionesVencidasSocios = await this.suscripcionRepository.find({
+      where: {
+        estado: 'Vencido',
+        membresia_id: 3,
+        perfilFan: { es_socio_club: true },
+      },
+      relations: ['perfilFan', 'perfilFan.usuario'],
+    });
+
+    for (const suscVencida of suscripcionesVencidasSocios) {
+      const dniUsuario = suscVencida.perfilFan?.usuario?.dni;
+      if (!dniUsuario) continue;
+
+      const checkPadron = verificarSocioAlDia(dniUsuario);
+
+      if (checkPadron.valido) {
+        //  ¡Regularizó su cuota en el club! Reactivamos desde HOY por 30 días
+        const nuevaFechaFin = new Date(ahora);
+        nuevaFechaFin.setDate(ahora.getDate() + 30);
+
+        suscVencida.fecha_inicio = ahora;
+        suscVencida.fecha_fin = nuevaFechaFin;
+        suscVencida.estado = 'Activo';
+        await this.suscripcionRepository.save(suscVencida);
+
+        await pagoLogRepo.save(pagoLogRepo.create({
+          suscripcion_id: suscVencida.id,
+          monto: 0,
+          metodo_pago: 'convenio_socio_ar',
+          id_transaccion_mp: `REACTIV_AR_${dniUsuario}_${Date.now()}`,
+        }));
+
+        console.log(`[Cron Socio AR] ¡Socio DNI ${dniUsuario} regularizó su cuota! P3 reactivado.`);
+      }
+    }
   }
 }

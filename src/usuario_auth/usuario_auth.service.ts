@@ -73,15 +73,22 @@ export class UsuarioAuthService {
       throw new UnauthorizedException('Tu cuenta ha sido suspendida por la administración del Autódromo.');
     }
 
+   // Buscamos el usuario incluyendo los eliminados (withDeleted: true) para saber si fue dado de baja
     const usuarioConRol = await this.usuarioRepository.findOne({
       where: { usuario_auth_id: usuario.id },
       relations: ['perfilStaff', 'perfilStaff.rolStaff'],
+      withDeleted: true, // 👈 Clave para detectar soft-delete vs registro en Paso 1
     });
 
-    if (!usuarioConRol) {
+    // Si existe pero tiene fecha de baja (eliminado_en), está desactivado -> Bloqueamos
+    if (usuarioConRol && usuarioConRol.eliminado_en) {
       throw new UnauthorizedException('Perfil de usuario no encontrado o cuenta desactivada.');
     }
 
+    // Si directamente no existe fila en 'usuario', pero la cuenta ya estaba 'Activo' (no está en Paso 1) -> Bloqueamos
+    if (!usuarioConRol && usuario.estado_cuenta === 'Activo') {
+      throw new UnauthorizedException('Perfil de usuario no encontrado o cuenta desactivada.');
+    }
     const nombreRol = usuarioConRol?.perfilStaff?.rolStaff?.nombre_rol || 'fan';
 
     // 3. Comparamos la clave
