@@ -474,5 +474,37 @@ export class SuscripcionService {
     return suscripcion ? suscripcion.membresia_id : 3;
   }
 
-  
+  async eliminarSuscripcionPendiente(usuarioId: number) {
+    // 1. Buscamos el perfil del fan
+    const perfil = await this.suscripcionRepository.manager.getRepository('PerfilFan').findOne({
+      where: { usuario_id: usuarioId }
+    });
+
+    if (!perfil) {
+      throw new NotFoundException('Perfil de Fan no encontrado.');
+    }
+
+    // 2. Buscamos SI O SI la última suscripción que esté PENDIENTE
+    const suscripcionPendiente = await this.suscripcionRepository.findOne({
+      where: { 
+        perfil_fan_id: perfil.id,
+        estado: 'Pendiente' 
+      },
+      order: { id: 'DESC' }
+    });
+
+    // 3. Si no hay ninguna pendiente, no hacemos nada
+    if (!suscripcionPendiente) {
+      throw new NotFoundException('No tenés ninguna transacción pendiente para cancelar.');
+    }
+
+    // 4. Hacemos un HARD DELETE (Borrado físico). 
+    // Como nunca pagó, no necesitamos mantener registro de este intento en la tabla.
+    await this.suscripcionRepository.remove(suscripcionPendiente);
+
+    return { 
+      message: 'Operación cancelada exitosamente.',
+      suscripcionEliminada: suscripcionPendiente.id
+    };
+  }
 }

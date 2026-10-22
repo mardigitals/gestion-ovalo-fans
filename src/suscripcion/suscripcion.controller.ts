@@ -1,5 +1,5 @@
 import { 
-  Controller, Get, Post, Body, Patch, Param, 
+  Controller, Get, Delete, Post, Body, Patch, Param, 
   UseGuards, Request, Query, ParseIntPipe 
 } from '@nestjs/common';
 import { SuscripcionService } from './suscripcion.service';
@@ -41,6 +41,13 @@ export class SuscripcionController {
   async findOne(@Request() req) {
     const authId = req.user.userId;
     return await this.suscripcionService.findOne(authId);
+  }
+
+  // 5. CANCELAR SUSCRIPCIÓN PENDIENTE (Limpieza de intención de pago)
+  @Delete('pendiente')
+  async cancelarPendiente(@Request() req) {
+    const authId = req.user.userId; 
+    return await this.suscripcionService.eliminarSuscripcionPendiente(authId);
   }
 
   @Get('verificar-pase')
