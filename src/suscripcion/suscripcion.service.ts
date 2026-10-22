@@ -17,7 +17,7 @@ export class SuscripcionService {
   ) {}
 
   /**
-   * 1. INICIAR SUSCRIPCIÓN O CAMBIO DE PLAN (Upgrade/Downgrade)
+   * 1. INICIAR SUSCRIPCIÓN O CAMBIO DE PLAN (Upgrade/Downgrade/Renovación Anticipada)
    */
   async crearIntencion(dto: CreateSuscripcionDto, usuarioId: number) {
     const perfil = await this.suscripcionRepository.manager.getRepository('PerfilFan').findOne({
@@ -39,24 +39,29 @@ export class SuscripcionService {
     
     if (!nuevaMembresia) throw new BadRequestException('El plan seleccionado no existe.');
 
-    // 🔥 LÓGICA DE UPGRADE / DOWNGRADE
+    // 🔥 VALIDACIÓN DE PLAN ACTIVO (Renovación vs Upgrade/Downgrade)
     if (activa) {
       if (activa.membresia_id === dto.membresia_id) {
-        throw new BadRequestException('Ya posees este plan activo actualmente.');
-      }
+        const hoy = new Date();
+        const fechaFin = new Date(activa.fecha_fin);
+        const difDias = Math.ceil((fechaFin.getTime() - hoy.getTime()) / (1000 * 60 * 60 * 24));
 
-      // En tu BD: ID 1 es el más caro, ID 3 es el más barato.
-      // Si el ID nuevo es menor que el actual, es un UPGRADE (Ej: de 3 a 1)
-      const isUpgrade = dto.membresia_id < activa.membresia_id;
+        // Si faltan más de 7 días, se bloquea la duplicación innecesaria
+        if (difDias > 7) {
+          throw new BadRequestException('Ya posees este plan activo actualmente.');
+        }
 
-      if (isUpgrade) {
-        // CAMINO A - UPGRADE: Se crea la intención pendiente. 
-        // Al pagarse, se cancelará la actual y esta entrará en vigencia inmediatamente.
-        // No hacemos nada extra acá, solo permitimos que pase a crear la 'Pendiente'.
+        // Si faltan 7 días o menos: es una renovación manual anticipada permitida.
+        // Avanza directamente al bloque de intención pendiente sin bloquearse.
       } else {
-        // CAMINO B - DOWNGRADE: (Ej: de 1 a 3)
-        // La regla dice que mantiene los beneficios hasta la fecha de fin actual.
-        // Creamos la intención, pero en la activación (siguiente paso) deberemos programarla.
+        // En tu BD: ID 1 es el más caro, ID 3 es el más barato.
+        const isUpgrade = dto.membresia_id < activa.membresia_id;
+
+        if (isUpgrade) {
+          // CAMINO A - UPGRADE: Pasa a crear la intención 'Pendiente'.
+        } else {
+          // CAMINO B - DOWNGRADE: Pasa a crear la intención para programarse en la activación.
+        }
       }
     }
 
@@ -81,7 +86,7 @@ export class SuscripcionService {
   }
 
   /**
-   * 2. ACTIVACIÓN DE SUSCRIPCIÓN (Con manejo de Upgrade / Downgrade)
+   * 2. ACTIVACIÓN DE SUSCRIPCIÓN (Con manejo de Upgrade / Downgrade / Renovación)
    */
   async activarSuscripcion(id: number) {
     const suscripcionNueva = await this.suscripcionRepository.findOne({
@@ -105,27 +110,33 @@ export class SuscripcionService {
     let estadoNueva = 'Activo';
 
     if (suscripcionVieja && suscripcionVieja.id !== suscripcionNueva.id) {
-      // Regla de tu BD: ID menor es más caro (1 = P1, 3 = P3)
-      const isUpgrade = suscripcionNueva.membresia_id < suscripcionVieja.membresia_id;
+      const esMismoPlan = suscripcionNueva.membresia_id === suscripcionVieja.membresia_id;
 
-      if (isUpgrade) {
-        // 🔥 CAMINO A: UPGRADE (Mayor valor)
-        // Damos de baja la anterior inmediatamente
+      if (esMismoPlan) {
+        // 🔄 CAMINO RENOVACIÓN ANTICIPADA:
+        // La suscripción actual se da por finalizada para evitar colisiones activas
         suscripcionVieja.estado = 'Cancelado';
         await this.suscripcionRepository.save(suscripcionVieja);
-        
-        // La nueva arranca HOY
-        fechaInicio = ahora;
+
+        // La nueva arranca donde terminaba la anterior para no descontarle días al socio
+        const finVieja = new Date(suscripcionVieja.fecha_fin);
+        fechaInicio = finVieja > ahora ? finVieja : ahora;
         estadoNueva = 'Activo';
       } else {
-        // ⏳ CAMINO B: DOWNGRADE (Menor valor)
-        // La vieja se mantiene activa hasta su vencimiento.
-        // La nueva arrancará exactamente el día que vence la vieja.
-        fechaInicio = new Date(suscripcionVieja.fecha_fin);
-        
-        // La dejamos como Pendiente para que no haya 2 suscripciones "Activas" chocando.
-        // (Podrías agregar 'Programado' a tu ENUM en el entity y el DTO si querés ser más purista)
-        estadoNueva = 'Pendiente'; 
+        const isUpgrade = suscripcionNueva.membresia_id < suscripcionVieja.membresia_id;
+
+        if (isUpgrade) {
+          // 🔥 CAMINO A: UPGRADE (Mayor valor)
+          suscripcionVieja.estado = 'Cancelado';
+          await this.suscripcionRepository.save(suscripcionVieja);
+          
+          fechaInicio = ahora;
+          estadoNueva = 'Activo';
+        } else {
+          // ⏳ CAMINO B: DOWNGRADE (Menor valor)
+          fechaInicio = new Date(suscripcionVieja.fecha_fin);
+          estadoNueva = 'Pendiente'; 
+        }
       }
     }
 
@@ -134,7 +145,6 @@ export class SuscripcionService {
     if (suscripcionNueva.membresia.nombre.toLowerCase().includes('anual')) {
       fechaFin.setFullYear(fechaInicio.getFullYear() + 1);
     } else {
-      // Le sumamos 30 días exactos desde su fecha de inicio
       fechaFin.setDate(fechaInicio.getDate() + 30); 
     }
 
