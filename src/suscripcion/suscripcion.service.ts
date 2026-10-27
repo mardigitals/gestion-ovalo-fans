@@ -185,7 +185,7 @@ export class SuscripcionService {
   /**
    * 4. PROCESO DE CICLO DE VIDA (Cron Job Diario a la medianoche)
    */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
   async procesarCicloDeVidaSuscripciones() {
     console.log('[Cron] Iniciando procesamiento diario de suscripciones...');
     const hoy = new Date();
