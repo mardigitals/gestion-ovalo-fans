@@ -3,7 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like, MoreThan, DataSource } from 'typeorm';
 import { UsuarioAuth } from './entities/usuario_auth.entity';
 import { CreateUsuarioAuthDto } from './dto/create-usuario_auth.dto';
+import { CreateUsuarioDto } from 'src/usuario/dto/create-usuario.dto';
+import { validate } from 'class-validator';
+import { CreatePerfilFanDto } from 'src/perfil-fan/dto/create-perfil-fan.dto';
 import * as bcrypt from 'bcrypt';
+import { plainToInstance } from 'class-transformer';  
 import { JwtService } from '@nestjs/jwt'; 
 import { LoginDto } from './dto/login.dto'; 
 import * as crypto from 'crypto';
@@ -56,6 +60,132 @@ export class UsuarioAuthService {
     return await this.usuarioAuthRepository.save(nuevoUsuario);
   }
 
+  async registerFull(body: any) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Instanciar y validar los 3 DTOs de forma independiente
+      const authDto = plainToInstance(CreateUsuarioAuthDto, body);
+      const usuarioDto = plainToInstance(CreateUsuarioDto, body);
+      const perfilFanDto = plainToInstance(CreatePerfilFanDto, body);
+
+      // Omitimos temporalmente la validación estricta de usuario_auth_id para la validación inicial del DTO
+      // ya que se autocompleta internamente tras guardar la autenticación.
+      usuarioDto.usuario_auth_id = 1; 
+
+      const [errorsAuth, errorsUsuario, errorsPerfil] = await Promise.all([
+        validate(authDto),
+        validate(usuarioDto),
+        validate(perfilFanDto),
+      ]);
+
+      const allErrors = [...errorsAuth, ...errorsUsuario, ...errorsPerfil];
+
+      if (allErrors.length > 0) {
+        const formattedErrors: Record<string, string> = {};
+        allErrors.forEach(err => {
+          if (err.constraints) {
+            formattedErrors[err.property] = Object.values(err.constraints)[0];
+          }
+        });
+
+        throw new BadRequestException({
+          errores: formattedErrors,
+          message: 'Error de validación en los campos del formulario'
+        });
+      }
+
+      // 2. Verificar si el email ya existe en la base de datos
+      const existingAuth = await queryRunner.manager.findOne(UsuarioAuth, {
+        where: { email: body.email },
+      });
+      if (existingAuth) {
+        throw new BadRequestException({
+          errores: { email: 'El correo electrónico ya se encuentra registrado.' }
+        });
+      }
+
+      // 3. Verificar si el DNI ya existe en la base de datos
+      const existingDni = await queryRunner.manager.findOne(Usuario, {
+        where: { dni: body.dni },
+      });
+      if (existingDni) {
+        throw new BadRequestException({
+          errores: { dni: 'El DNI ingresado ya pertenece a otro usuario registrado.' }
+        });
+      }
+
+      // 4. Hashear la contraseña de forma segura
+      const hashedPassword = await bcrypt.hash(body.contrasena, 10);
+
+      // 5. Crear y guardar Auth
+      const usuarioAuth = queryRunner.manager.create(UsuarioAuth, {
+        email: body.email,
+        contrasena_hash: hashedPassword,
+        rol: 'Fan',
+        estado_cuenta: 'Activo',
+      });
+      const savedAuth = await queryRunner.manager.save(usuarioAuth);
+
+      // 6. Crear y guardar Usuario asociando el ID de auth
+      const usuario = queryRunner.manager.create(Usuario, {
+        usuario_auth_id: savedAuth.id,
+        nombre: body.nombre,
+        apellido: body.apellido,
+        dni: body.dni,
+        fecha_nacimiento: body.fecha_nacimiento,
+        genero: body.genero,
+        nacionalidad: body.nacionalidad,
+        telefono: body.telefono,
+        calle: body.calle,
+        numero: body.numero,
+        piso: body.piso,
+        depto: body.depto,
+        cp: body.cp,
+        ciudad: body.ciudad,
+        provincia: body.provincia,
+        pais: body.pais,
+      });
+      const savedUsuario = await queryRunner.manager.save(usuario);
+
+      // 7. Crear y guardar Perfil Fan asociando el ID del usuario
+      const perfilFan = queryRunner.manager.create(PerfilFan, {
+        usuario_id: savedUsuario.id,
+        alias: body.alias,
+        avatar: body.avatar,
+        es_socio_club: body.es_socio_club,
+        bio: body.bio,
+        hincha_marca_tc: body.hincha_marca_tc,
+        chicana_favorita: body.chicana_favorita,
+      });
+      await queryRunner.manager.save(perfilFan);
+
+      // Si todo sale bien, consolidamos la transacción de punta a punta
+      await queryRunner.commitTransaction();
+
+      return {
+        success: true,
+        message: '¡Registro completo exitoso!',
+        id: savedAuth.id,
+      };
+
+    } catch (err: any) {
+      // Si ocurre cualquier error, la base de datos se revierte por completo (cero huérfanos)
+      await queryRunner.rollbackTransaction();
+
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
+
+      throw new BadRequestException({
+        errores: { general: err.message || 'Error interno al procesar el registro.' }
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  }
 
   async login(loginDto: LoginDto, ip: string, navegador: string) {
     const { email, contrasena } = loginDto;
