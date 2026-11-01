@@ -18,7 +18,6 @@ export class UsuarioAuthController {
   create(@Body() createUsuarioAuthDto: CreateUsuarioAuthDto) {
     return this.usuarioAuthService.create(createUsuarioAuthDto);
   }
-
   // 2. Usamos el ExpressRequest para tener acceso a req.ip y req.socket
   @Post('login') 
   login(@Body() loginDto: LoginDto, @Req() req: ExpressRequest) {

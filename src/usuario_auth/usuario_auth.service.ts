@@ -1,13 +1,12 @@
 import { Injectable, ConflictException, UnauthorizedException, NotFoundException, BadRequestException} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Like } from 'typeorm';
+import { Repository, Like, MoreThan, DataSource } from 'typeorm';
 import { UsuarioAuth } from './entities/usuario_auth.entity';
 import { CreateUsuarioAuthDto } from './dto/create-usuario_auth.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt'; 
 import { LoginDto } from './dto/login.dto'; 
 import * as crypto from 'crypto';
-import { MoreThan } from 'typeorm';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Usuario } from 'src/usuario/entities/usuario.entity';
 import { MailService } from 'src/mail/mail.service';
@@ -20,6 +19,7 @@ export class UsuarioAuthService {
   constructor(
     @InjectRepository(UsuarioAuth)
     private readonly usuarioAuthRepository: Repository<UsuarioAuth>,
+    private readonly dataSource: DataSource,
 
     @InjectRepository(Usuario)
     private readonly usuarioRepository: Repository<Usuario>,
@@ -55,6 +55,7 @@ export class UsuarioAuthService {
 
     return await this.usuarioAuthRepository.save(nuevoUsuario);
   }
+
 
   async login(loginDto: LoginDto, ip: string, navegador: string) {
     const { email, contrasena } = loginDto;
